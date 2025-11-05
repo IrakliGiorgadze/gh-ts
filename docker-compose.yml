@@ -1,0 +1,54 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15
+    container_name: ticketing-db
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: ticketing_db
+      POSTGRES_USER: ticketuser
+      POSTGRES_PASSWORD: ticketpass123
+    volumes:
+      - db-data:/var/lib/postgresql/data
+      # optional: run any .sql in ./database/init on first boot
+      - ./database/init:/docker-entrypoint-initdb.d:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ticketuser -d ticketing_db || exit 1"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  api:
+    build:
+      context: ./backend
+    container_name: ticketing-api
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      APP_ENV: dev
+      API_PORT: "8080"
+      CORS_ORIGIN: "http://localhost:3000"
+      DB_DSN: "postgres://ticketuser:ticketpass123@db:5432/ticketing_db?sslmode=disable"
+    ports:
+      - "8080:8080"
+    # mount uploads if you need local persistence for attachments
+    volumes:
+      - ./backend/uploads:/app/uploads
+
+  web:
+    build:
+      context: ./frontend
+    container_name: ticketing-web
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "3000:80"
+    # if your frontend needs the API base URL at runtime, serve relative paths
+    # and call /api/... directly from the browser
+
+volumes:
+  db-data:

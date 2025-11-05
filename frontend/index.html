@@ -1,0 +1,55 @@
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>IT Ticketing System</title>
+    <link rel="stylesheet" href="./assets/css/main.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="nav">
+        <div class="brand">
+          <img src="./assets/images/logo.png" alt="logo" width="28" height="28"/>
+          <span>IT Ticketing System</span>
+        </div>
+        <div id="nav-actions"></div>
+      </div>
+
+      <div class="grid grid-3">
+        <div class="card kpi"><div class="muted">Open Tickets</div><div class="val" id="kpi-open">0</div></div>
+        <div class="card kpi"><div class="muted">SLA at Risk</div><div class="val" id="kpi-risk">0</div></div>
+        <div class="card kpi"><div class="muted">Resolved (7d)</div><div class="val" id="kpi-resolved">0</div></div>
+      </div>
+
+      <div class="card" style="margin-top:16px">
+        <div class="row" style="align-items:center;justify-content:space-between">
+          <h3 style="margin:0">Tickets</h3>
+          <div class="row" style="gap:8px">
+            <input id="q" class="input" placeholder="Search title or description" style="min-width:260px"/>
+            <select id="filter-status">
+              <option value="">All Statuses</option>
+              <option>New</option><option>Open</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option>
+            </select>
+            <button class="btn" onclick="location.href='./pages/create-ticket.html'">+ New Ticket</button>
+          </div>
+        </div>
+
+        <table class="table" style="margin-top:12px">
+          <thead><tr>
+            <th>ID</th><th>Title</th><th>Priority</th><th>Status</th><th>Assignee</th><th>Updated</th>
+          </tr></thead>
+          <tbody id="tickets-body"></tbody>
+        </table>
+      </div>
+
+      <footer>Local demo using browser storage. No backend required.</footer>
+    </div>
+
+    <script src="./assets/js/utils.js"></script>
+    <script src="./assets/js/mock_api.js"></script>
+    <script src="./assets/js/auth.js"></script>
+    <script src="./assets/js/dashboard.js"></script>
+  </body>
+</html>

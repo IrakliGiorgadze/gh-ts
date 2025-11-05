@@ -1,0 +1,38 @@
+# OS / Editor
+.DS_Store
+.vscode/
+.idea/
+
+# Environment
+.env
+*.env
+
+# Go build artifacts
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Vendor (if ever used)
+vendor/
+
+# Uploads (keep .gitkeep only)
+backend/uploads/*
+!backend/uploads/.gitkeep
+
+# Database backups (keep .gitkeep only)
+database/backups/*
+!database/backups/.gitkeep
+
+# Logs & temp
+*.log
+logs/
+tmp/
+temp/
+
+# Docker
+*.pid
+*.pid.lock

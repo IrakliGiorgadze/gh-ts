@@ -1,0 +1,39 @@
+
+:root{
+  --bg:#0b1020;
+  --card:#121a33;
+  --muted:#aab1c7;
+  --text:#e8ecff;
+  --accent:#5b8cff;
+  --accent-2:#00d4b3;
+}
+*{box-sizing:border-box}
+html,body{margin:0;padding:0;font-family:ui-sans-serif, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial; background:var(--bg); color:var(--text)}
+a{color:var(--accent);text-decoration:none}
+.container{max-width:1100px;margin:0 auto;padding:24px}
+.btn{display:inline-block;padding:10px 14px;border-radius:10px;background:var(--accent);color:white;border:none;cursor:pointer}
+.btn.secondary{background:#263358}
+.btn.ghost{background:transparent;border:1px solid #2a3b73}
+.input, select, textarea{width:100%;padding:10px 12px;border-radius:10px;border:1px solid #2a3b73;background:#0e1630;color:var(--text)}
+.row{display:flex;gap:16px;flex-wrap:wrap}
+.card{background:var(--card);border:1px solid #1a2550;border-radius:16px;padding:18px;box-shadow:0 10px 30px rgba(5,10,30,.25)}
+.grid{display:grid;gap:16px}
+.grid-2{grid-template-columns:repeat(2, minmax(0,1fr))}
+.grid-3{grid-template-columns:repeat(3, minmax(0,1fr))}
+.badge{padding:4px 8px;border-radius:999px;font-size:12px;border:1px solid #2a3b73;color:var(--muted)}
+.nav{display:flex;align-items:center;justify-content:space-between;margin-bottom:18px}
+.nav .brand{display:flex;gap:10px;align-items:center;font-weight:700}
+.table{width:100%;border-collapse:separate;border-spacing:0 10px}
+.table th{color:#9fb1ff;text-align:left;font-size:13px;padding:0 8px 6px}
+.table td{background:#101a36;border:1px solid #20306a;padding:10px;border-left:none;border-right:none}
+.kpi{display:flex;flex-direction:column;gap:6px}
+.kpi .val{font-size:28px;font-weight:700}
+.status{padding:4px 10px;border-radius:999px;border:1px solid #2a3b73}
+.status.NEW{border-color:#4253aa}
+.status.OPEN{border-color:#6474ff}
+.status.PROGRESS{border-color:#8e9bff}
+.status.PENDING{border-color:#f0c36a}
+.status.RESOLVED{border-color:#00d4b3}
+.status.CLOSED{border-color:#6a7087;color:#6a7087}
+footer{margin-top:32px;color:var(--muted);font-size:13px;text-align:center}
+.hidden{display:none}

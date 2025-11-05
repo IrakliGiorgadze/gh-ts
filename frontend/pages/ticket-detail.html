@@ -1,0 +1,91 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Ticket Details</title>
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="nav">
+      <div class="brand"><a href="../index.html">← Back</a></div>
+      <div id="nav-actions"></div>
+    </div>
+
+    <div class="grid grid-2">
+      <div class="card">
+        <h2 id="t-title" style="margin:0 0 6px 0"></h2>
+        <div class="row" style="gap:8px">
+          <span class="badge" id="t-id"></span>
+          <span class="badge" id="t-priority"></span>
+          <span class="badge" id="t-category"></span>
+          <span class="badge" id="t-status"></span>
+        </div>
+        <p id="t-desc" style="margin-top:12px"></p>
+        <div class="row" style="gap:8px;margin-top:12px">
+          <label>Status</label>
+          <select id="sel-status" class="input" style="max-width:240px">
+            <option>New</option><option>Open</option><option>In Progress</option><option>Pending</option><option>Resolved</option><option>Closed</option>
+          </select>
+          <button class="btn secondary" id="btn-update-status">Update</button>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3 style="margin-top:0">Comments</h3>
+        <div id="comments"></div>
+        <div class="row" style="margin-top:10px">
+          <input class="input" id="new-comment" placeholder="Add a comment..." />
+          <button class="btn" id="btn-add-comment">Comment</button>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script>
+    addDefaultNav('nav-actions');
+    const id = new URLSearchParams(location.search).get('id');
+    let ticket;
+    (async () => {
+      ticket = await API.getTicket(id);
+      byId('t-title').textContent = ticket.title;
+      byId('t-id').textContent = `#${ticket.id}`;
+      byId('t-priority').textContent = ticket.priority;
+      byId('t-category').textContent = ticket.category;
+      byId('t-status').textContent = ticket.status;
+      byId('t-desc').textContent = ticket.description;
+      byId('sel-status').value = ticket.status;
+      renderComments(ticket.comments || []);
+    })();
+
+    function renderComments(list){
+      const el = byId('comments'); el.innerHTML = '';
+      if(!list.length){ el.innerHTML = '<div class="muted">No comments yet.</div>'; return; }
+      list.forEach(c => {
+        const div = document.createElement('div');
+        div.className='card'; div.style.margin='8px 0'; div.innerHTML = `<div class="muted">${new Date(c.createdAt).toLocaleString()}</div><div>${escapeHtml(c.text)}</div>`;
+        el.appendChild(div);
+      });
+    }
+
+    byId('btn-add-comment').addEventListener('click', async () => {
+      const text = val('new-comment').trim();
+      if(!text) return;
+      const updated = await API.addComment(id, text);
+      renderComments(updated.comments);
+      byId('new-comment').value='';
+    });
+
+    byId('btn-update-status').addEventListener('click', async () => {
+      const status = val('sel-status');
+      const updated = await API.updateTicket(id, {status});
+      byId('t-status').textContent = updated.status;
+    });
+  </script>
+</body>
+</html>

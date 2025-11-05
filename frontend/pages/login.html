@@ -1,0 +1,35 @@
+
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Login - IT Ticketing</title>
+  <link rel="stylesheet" href="../assets/css/main.css" />
+</head>
+<body>
+  <div class="container">
+    <div class="card" style="max-width:420px;margin:60px auto">
+      <h2>Sign in</h2>
+      <p class="muted">Use demo credentials to continue.</p>
+      <form id="login-form" class="grid" onsubmit="return false;" style="gap:12px">
+        <input class="input" id="email" placeholder="Email" value="admin@example.com" />
+        <input class="input" id="password" type="password" placeholder="Password" value="admin" />
+        <button class="btn" id="btn-login">Login</button>
+      </form>
+      <div id="login-error" class="badge" style="margin-top:10px;display:none">Invalid credentials</div>
+    </div>
+  </div>
+  <script src="../assets/js/utils.js"></script>
+  <script src="../assets/js/api.js"></script>
+  <script src="../assets/js/auth.js"></script>
+  <script>
+    document.getElementById('btn-login').addEventListener('click', async () => {
+      const ok = await Auth.login(document.getElementById('email').value, document.getElementById('password').value);
+      if(ok){ location.href = '../index.html'; } else {
+        document.getElementById('login-error').style.display='inline-block';
+      }
+    });
+  </script>
+</body>
+</html>
