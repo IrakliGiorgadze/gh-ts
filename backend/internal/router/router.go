@@ -14,10 +14,18 @@ import (
 	"gh-ts/internal/handlers"
 	"gh-ts/internal/middleware"
 	"gh-ts/internal/repository/postgres"
+	"gh-ts/internal/service"
 )
 
 func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 	r := chi.NewRouter()
+
+	r.Use(middleware.WithAuth(log, cfg))
+
+	// Repos & services
+	userRepo := postgres.NewUserRepo(db)
+	authSvc := service.NewAuthService(userRepo, cfg.SessionSecret)
+	auth := handlers.NewAuthHTTP(authSvc)
 
 	r.Use(middleware.RequestLogger(log))
 	r.Use(middleware.Recoverer(log))
@@ -31,6 +39,7 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 
 	// Health
 	r.Get("/healthz", handlers.Health())
+	r.Get("/api/healthz", handlers.Health())
 
 	// Repos + handlers
 	ticketRepo := postgres.NewTicketRepo(db)
@@ -44,6 +53,14 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 			r.Patch("/", th.Update())
 			r.Post("/comments", th.AddComment())
 		})
+	})
+
+	// Auth routes
+	r.Route("/api/auth", func(r chi.Router) {
+		r.Post("/register", auth.Register())
+		r.Post("/login", auth.Login(cfg.SessionSecret))
+		r.Post("/logout", auth.Logout())
+		r.Get("/me", auth.Me())
 	})
 
 	return r

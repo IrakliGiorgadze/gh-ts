@@ -10,3 +10,9 @@ type TicketRepository interface {
 	Update(ctx context.Context, t *models.Ticket) error
 	AddComment(ctx context.Context, ticketID string, text string) (*models.Comment, error)
 }
+
+type UserRepository interface {
+	Create(ctx context.Context, email, name, role, passwordHash string) (*models.User, error)
+	GetByEmail(ctx context.Context, email string) (*models.User, string /*passwordHash*/, error)
+	GetByID(ctx context.Context, id string) (*models.User, error)
+}

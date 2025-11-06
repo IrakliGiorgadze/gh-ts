@@ -36,3 +36,5 @@ temp/
 # Docker
 *.pid
 *.pid.lock
+
+notes.txt

@@ -3,10 +3,11 @@ package config
 import "os"
 
 type Config struct {
-	Env    string
-	Port   string
-	DBURL  string
-	Origin string // CORS
+	Env           string
+	Port          string
+	DBURL         string
+	Origin        string // CORS
+	SessionSecret string
 }
 
 func env(k, def string) string {
@@ -18,9 +19,10 @@ func env(k, def string) string {
 
 func Load() Config {
 	return Config{
-		Env:    env("APP_ENV", "dev"),
-		Port:   env("API_PORT", "8080"),
-		DBURL:  env("DB_DSN", "postgres://ticketuser:ticketpass123@localhost:5432/ticketing_db?sslmode=disable"),
-		Origin: env("CORS_ORIGIN", "http://localhost:3000"),
+		Env:           env("APP_ENV", "dev"),
+		Port:          env("API_PORT", "8080"),
+		DBURL:         env("DB_DSN", "postgres://ticketuser:ticketpass123@localhost:5432/ticketing_db?sslmode=disable"),
+		Origin:        env("CORS_ORIGIN", "http://localhost:3000"),
+		SessionSecret: env("SESSION_SECRET", "dev-change-me"),
 	}
 }

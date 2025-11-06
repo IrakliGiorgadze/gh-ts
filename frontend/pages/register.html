@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Register</title>
+    <link rel="stylesheet" href="../assets/css/main.css" />
+  </head>
+  <body>
+    <div class="container">
+      <div class="card" style="max-width: 480px; margin: 60px auto">
+        <h2>Create Account</h2>
+        <div class="grid" style="gap: 12px">
+          <input id="email" class="input" placeholder="Email" />
+          <input id="name" class="input" placeholder="Full name" />
+          <input
+            id="password"
+            type="password"
+            class="input"
+            placeholder="Password (min 6 chars)"
+          />
+          <select id="role" class="input">
+            <option value="end_user">End User</option>
+            <option value="agent">Agent</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button id="btn" class="btn">Register</button>
+          <div id="msg" class="badge" style="display: none"></div>
+        </div>
+        <p class="muted" style="margin-top: 10px">
+          Already have an account? <a href="./login.html">Sign in</a>
+        </p>
+      </div>
+    </div>
+    <script src="../assets/js/api.js"></script>
+    <script>
+      async function register(email, name, password, role) {
+        const res = await fetch("/api/auth/register", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({ email, name, password, role }),
+        });
+        if (!res.ok) {
+          throw new Error((await res.json()).error || "Registration failed");
+        }
+        return res.json();
+      }
+      document.getElementById("btn").onclick = async () => {
+        const email = document.getElementById("email").value.trim();
+        const name = document.getElementById("name").value.trim();
+        const pw = document.getElementById("password").value;
+        const role = document.getElementById("role").value;
+        const msg = document.getElementById("msg");
+        try {
+          await register(email, name, pw, role);
+          msg.textContent = "User created. You can login now.";
+          msg.style.display = "inline-block";
+          setTimeout(() => (location.href = "./login.html"), 800);
+        } catch (e) {
+          msg.textContent = e.message;
+          msg.style.display = "inline-block";
+        }
+      };
+    </script>
+  </body>
+</html>
