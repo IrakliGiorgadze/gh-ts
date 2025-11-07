@@ -13,13 +13,16 @@
         <div class="brand"><a href="../index.html">← Back</a></div>
         <div id="nav-actions"></div>
       </div>
+
       <div class="card">
         <h2 style="margin-top: 0">New Ticket</h2>
+
         <div class="grid grid-2">
           <div>
             <label>Title</label>
             <input id="t-title" class="input" placeholder="Short summary" />
           </div>
+
           <div>
             <label>Priority</label>
             <select id="t-priority" class="input">
@@ -29,6 +32,7 @@
               <option>Critical</option>
             </select>
           </div>
+
           <div>
             <label>Category</label>
             <select id="t-category" class="input">
@@ -38,10 +42,12 @@
               <option>Access</option>
             </select>
           </div>
+
           <div>
             <label>Affected Department</label>
             <input id="t-dept" class="input" placeholder="e.g. HR, Finance" />
           </div>
+
           <div style="grid-column: span 2">
             <label>Description</label>
             <textarea
@@ -52,34 +58,90 @@
             ></textarea>
           </div>
         </div>
+
         <div class="row" style="margin-top: 12px; justify-content: flex-end">
           <button class="btn ghost" onclick="location.href='../index.html'">
             Cancel
           </button>
           <button class="btn" id="btn-create">Create</button>
+
+          <!-- Feedback Badges -->
+          <span
+            id="msg-ok"
+            class="badge"
+            style="display: none; margin-left: 8px"
+            >Created</span
+          >
+          <span
+            id="msg-err"
+            class="badge"
+            style="display: none; margin-left: 8px"
+            >Failed</span
+          >
         </div>
       </div>
     </div>
-    <script src="../assets/js/utils.js"></script>
-    <script src="../assets/js/api.js"></script>
+
+    <!-- Scripts -->
+    <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/api.js"></script>
     <script src="/assets/js/components.js"></script>
-    <script src="../assets/js/auth.js"></script>
+    <script src="/assets/js/auth.js"></script>
     <script src="/assets/js/guard.js"></script>
+
     <script>
       addDefaultNav("nav-actions");
-      document
-        .getElementById("btn-create")
-        .addEventListener("click", async () => {
-          const t = {
-            title: val("t-title"),
-            description: val("t-desc"),
-            category: val("t-category"),
-            priority: val("t-priority"),
-            department: val("t-dept"),
-          };
+
+      const btn = document.getElementById("btn-create");
+      const okEl = document.getElementById("msg-ok");
+      const errEl = document.getElementById("msg-err");
+
+      function show(el) {
+        el.style.display = "inline-block";
+        setTimeout(() => (el.style.display = "none"), 1200);
+      }
+
+      async function handleCreate(e) {
+        if (e) e.preventDefault();
+        errEl.style.display = "none";
+        btn.disabled = true;
+
+        const t = {
+          title: val("t-title").trim(),
+          description: val("t-desc").trim(),
+          category: val("t-category").trim(),
+          priority: val("t-priority"),
+          department: val("t-dept").trim(),
+        };
+
+        if (!t.title) {
+          errEl.textContent = "Title is required";
+          errEl.style.display = "inline-block";
+          btn.disabled = false;
+          return;
+        }
+
+        try {
           const created = await API.createTicket(t);
-          location.href = `./ticket-detail.html?id=${created.id}`;
-        });
+          show(okEl);
+          location.href = `./ticket-detail.html?id=${encodeURIComponent(
+            created.id
+          )}`;
+        } catch (e) {
+          console.error(e);
+          errEl.textContent = "Failed to create ticket";
+          errEl.style.display = "inline-block";
+        } finally {
+          btn.disabled = false;
+        }
+      }
+
+      btn.addEventListener("click", handleCreate);
+
+      // Allow Enter to submit if wrapped in a form in future
+      document.addEventListener("submit", (e) => {
+        if (e.target.closest(".card")) handleCreate(e);
+      });
     </script>
   </body>
 </html>

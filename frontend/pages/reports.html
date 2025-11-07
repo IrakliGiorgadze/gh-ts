@@ -1,154 +1,126 @@
-<!DOCTYPE html>
-<html lang="en">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <title>Reports - IT Ticketing</title>
-    <link rel="stylesheet" href="../assets/css/main.css" />
-  </head>
-  <body>
-    <!-- Global navbar -->
-    <div id="navbar"></div>
+<script src="/assets/js/api.js"></script>
+<script src="/assets/js/components.js"></script>
+<script src="/assets/js/guard.js"></script>
+<script>
+  (function () {
+    // inject navbar actions if you use components.js
+    if (typeof addDefaultNav === "function") {
+      // addDefaultNav can target a container; here we just render default in #navbar if you support it
+      try {
+        addDefaultNav();
+      } catch (_) {}
+    }
 
-    <main
-      class="container"
-      style="padding: 16px; max-width: 1100px; margin: auto"
-    >
-      <header
-        style="
-          display: flex;
-          gap: 12px;
-          align-items: center;
-          flex-wrap: wrap;
-          margin-bottom: 12px;
-        "
-      >
-        <h2 style="margin: 0">Reports</h2>
-        <button id="btn-refresh" class="btn" style="margin-left: auto">
-          Refresh
-        </button>
-      </header>
+    const elOpen = document.getElementById("kpi-open");
+    const elRes7 = document.getElementById("kpi-resolved7");
+    const elRisk = document.getElementById("kpi-risk");
+    const elBySt = document.getElementById("by-status");
+    const elByPr = document.getElementById("by-priority");
+    const elByCat = document.getElementById("by-category");
 
-      <!-- KPI cards -->
-      <section
-        class="grid"
-        style="
-          gap: 12px;
-          grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-          margin-bottom: 14px;
-        "
-      >
-        <div class="card" style="padding: 16px">
-          <div class="muted">Open Tickets</div>
-          <div id="kpi-open" style="font-size: 28px; font-weight: 700">–</div>
-        </div>
-        <div class="card" style="padding: 16px">
-          <div class="muted">Resolved (last 7d)</div>
-          <div id="kpi-resolved7" style="font-size: 28px; font-weight: 700">
-            –
-          </div>
-        </div>
-        <div class="card" style="padding: 16px">
-          <div class="muted">High/Critical at Risk</div>
-          <div id="kpi-risk" style="font-size: 28px; font-weight: 700">–</div>
-        </div>
-      </section>
+    function tableFromMap(title, m) {
+      const rows = Object.keys(m)
+        .sort()
+        .map((k) => {
+          return `<tr><td style="padding:6px 8px">${escapeHtml(
+            k
+          )}</td><td style="padding:6px 8px;text-align:right">${
+            m[k]
+          }</td></tr>`;
+        })
+        .join("");
+      return `
+        <div class="table-wrap" style="overflow:auto">
+          <table>
+            <thead>
+              <tr>
+                <th style="text-align:left;padding:6px 8px">${escapeHtml(
+                  title
+                )}</th>
+                <th style="text-align:right;padding:6px 8px">Count</th>
+              </tr>
+            </thead>
+            <tbody>${
+              rows ||
+              `<tr><td colspan="2" class="muted" style="padding:8px">No data</td></tr>`
+            }</tbody>
+          </table>
+        </div>`;
+    }
 
-      <!-- Breakdown table -->
-      <section class="card" style="padding: 12px">
-        <h3 style="margin: 0 0 12px 0">By Status</h3>
-        <div id="by-status"></div>
-        <h3 style="margin: 16px 0 12px 0">By Priority</h3>
-        <div id="by-priority"></div>
-        <h3 style="margin: 16px 0 12px 0">By Category</h3>
-        <div id="by-category"></div>
-      </section>
-    </main>
+    function countBy(arr, key) {
+      const out = {};
+      for (const it of arr) {
+        const k = it[key] || "Unknown";
+        out[k] = (out[k] || 0) + 1;
+      }
+      return out;
+    }
 
-    <script src="/assets/js/api.js"></script>
-    <script src="/assets/js/components.js"></script>
-    <script src="/assets/js/guard.js"></script>
-    <script>
-      (function () {
-        const elOpen = document.getElementById("kpi-open");
-        const elRes7 = document.getElementById("kpi-resolved7");
-        const elRisk = document.getElementById("kpi-risk");
-        const elBySt = document.getElementById("by-status");
-        const elByPr = document.getElementById("by-priority");
-        const elByCat = document.getElementById("by-category");
+    function escapeHtml(s) {
+      return String(s).replace(
+        /[&<>"']/g,
+        (m) =>
+          ({
+            "&": "&amp;",
+            "<": "&lt;",
+            ">": "&gt;",
+            '"': "&quot;",
+            "'": "&#039;",
+          }[m])
+      );
+    }
 
-        function tableFromMap(title, m) {
-          const rows = Object.keys(m)
-            .sort()
-            .map((k) => {
-              return `<tr><td style="padding:6px 8px">${escapeHtml(
-                k
-              )}</td><td style="padding:6px 8px;text-align:right">${
-                m[k]
-              }</td></tr>`;
-            })
-            .join("");
-          return `
-          <div class="table-wrap" style="overflow:auto">
-            <table>
-              <thead><tr><th style="text-align:left;padding:6px 8px">${escapeHtml(
-                title
-              )}</th><th style="text-align:right;padding:6px 8px">Count</th></tr></thead>
-              <tbody>${
-                rows ||
-                `<tr><td colspan="2" class="muted" style="padding:8px">No data</td></tr>`
-              }</tbody>
-            </table>
-          </div>`;
-        }
+    // Page through all tickets to build accurate breakdowns
+    async function loadAllTickets() {
+      const limit = 200;
+      let offset = 0;
+      let total = Infinity;
+      const items = [];
+      while (offset < total) {
+        const { items: page, total: t } = await API.searchTickets({
+          limit,
+          offset,
+          order: "desc",
+          sort: "updated_at",
+        });
+        total = Number.isFinite(t) ? t : offset + page.length;
+        items.push(...page);
+        if (!page.length) break;
+        offset += page.length;
+      }
+      return items;
+    }
 
-        function countBy(arr, key) {
-          const out = {};
-          for (const it of arr) {
-            const k = it[key] || "Unknown";
-            out[k] = (out[k] || 0) + 1;
-          }
-          return out;
-        }
+    async function load() {
+      // KPIs from backend (falls back to client-side if backend unavailable)
+      try {
+        const s = await API.getReportSummary();
+        elOpen.textContent = s.open ?? "0";
+        elRes7.textContent = s.resolved7d ?? "0";
+        elRisk.textContent = s.highCriticalOpen ?? "0";
+      } catch (e) {
+        console.error(e);
+        elOpen.textContent = "0";
+        elRes7.textContent = "0";
+        elRisk.textContent = "0";
+      }
 
-        function escapeHtml(s) {
-          return String(s).replace(
-            /[&<>"']/g,
-            (m) =>
-              ({
-                "&": "&amp;",
-                "<": "&lt;",
-                ">": "&gt;",
-                '"': "&quot;",
-                "'": "&#039;",
-              }[m])
-          );
-        }
+      // Breakdown from full list (pages through all results)
+      try {
+        const list = await loadAllTickets();
+        elBySt.innerHTML = tableFromMap("Status", countBy(list, "status"));
+        elByPr.innerHTML = tableFromMap("Priority", countBy(list, "priority"));
+        elByCat.innerHTML = tableFromMap("Category", countBy(list, "category"));
+      } catch (e) {
+        console.error(e);
+        elBySt.innerHTML = tableFromMap("Status", {});
+        elByPr.innerHTML = tableFromMap("Priority", {});
+        elByCat.innerHTML = tableFromMap("Category", {});
+      }
+    }
 
-        async function load() {
-          // KPIs from client helper (works online/offline)
-          const kpi = await API.getStats();
-          elOpen.textContent = kpi.open ?? "0";
-          elRes7.textContent = kpi.resolved7d ?? "0";
-          elRisk.textContent = kpi.risk ?? "0";
-
-          // Full list for breakdowns
-          const list = await API.listTickets({});
-
-          elBySt.innerHTML = tableFromMap("Status", countBy(list, "status"));
-          elByPr.innerHTML = tableFromMap(
-            "Priority",
-            countBy(list, "priority")
-          );
-          elByCat.innerHTML = tableFromMap(
-            "Category",
-            countBy(list, "category")
-          );
-        }
-
-        document.getElementById("btn-refresh").onclick = load;
-        load();
-      })();
-    </script>
-  </body>
-</html>
+    document.getElementById("btn-refresh").onclick = load;
+    load();
+  })();
+</script>

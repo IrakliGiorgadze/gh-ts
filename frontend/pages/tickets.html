@@ -49,15 +49,28 @@
             <option>Resolved</option>
             <option>Closed</option>
           </select>
+
+          <!-- Per-page selector to control server-side pagination -->
+          <select id="filter-limit" class="input" title="Per page">
+            <option>10</option>
+            <option selected>20</option>
+            <option>50</option>
+            <option>100</option>
+          </select>
+
           <button id="btn-apply" class="btn">Apply</button>
           <button id="btn-clear" class="btn ghost">Clear</button>
+
+          <span id="result-count" class="muted" style="margin-left: auto"
+            >–</span
+          >
         </div>
       </section>
 
       <!-- Results -->
       <section id="results" class="grid" style="gap: 10px"></section>
 
-      <!-- Pagination (client-side simple) -->
+      <!-- Pagination (server-side) -->
       <nav
         style="
           display: flex;
@@ -72,109 +85,36 @@
       </nav>
     </main>
 
+    <script src="/assets/js/utils.js"></script>
     <script src="/assets/js/api.js"></script>
     <script src="/assets/js/components.js"></script>
     <script src="/assets/js/guard.js"></script>
     <script>
       (function () {
+        // Optional navbar actions
+        if (typeof addDefaultNav === "function") {
+          try {
+            addDefaultNav("navbar");
+          } catch (_) {}
+        }
+
         // State
-        let PAGE = 1,
-          PAGE_SIZE = 10,
-          CACHE = [];
+        let PAGE = 1;
+        let PAGE_SIZE = 20; // default matches <select>
+        let TOTAL = 0; // server-reported total
+        let LAST_QUERY = { q: "", status: "" };
 
         // DOM
         const qEl = document.getElementById("filter-q");
         const stEl = document.getElementById("filter-status");
+        const limEl = document.getElementById("filter-limit");
         const resEl = document.getElementById("results");
         const prevEl = document.getElementById("prev");
         const nextEl = document.getElementById("next");
         const pageEl = document.getElementById("page-indicator");
+        const countEl = document.getElementById("result-count");
 
-        async function load() {
-          const q = qEl.value.trim();
-          const status = stEl.value.trim();
-          // Uses your advanced API client with offline fallback
-          CACHE = await API.listTickets({ q, status });
-          PAGE = 1;
-          render();
-        }
-
-        function render() {
-          const start = (PAGE - 1) * PAGE_SIZE;
-          const slice = CACHE.slice(start, start + PAGE_SIZE);
-
-          resEl.innerHTML =
-            slice.map((row) => ticketCard(row)).join("") || emptyState();
-
-          // wire clicks
-          resEl.querySelectorAll(".ticket-card").forEach((card) => {
-            card.addEventListener("click", () => {
-              const id = card.getAttribute("data-id");
-              location.href = `./ticket-detail.html?id=${encodeURIComponent(
-                id
-              )}`;
-            });
-          });
-
-          // pagination ui
-          const totalPages = Math.max(1, Math.ceil(CACHE.length / PAGE_SIZE));
-          pageEl.textContent = `Page ${PAGE} of ${totalPages}`;
-          prevEl.disabled = PAGE <= 1;
-          nextEl.disabled = PAGE >= totalPages;
-        }
-
-        function ticketCard(t) {
-          const updated = t.updatedAt ? new Date(t.updatedAt) : null;
-          const when = updated ? updated.toLocaleString() : "";
-          return `
-          <article class="card ticket-card" data-id="${
-            t.id
-          }" style="cursor:pointer;padding:12px">
-            <div style="display:flex;justify-content:space-between;gap:12px">
-              <div>
-                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
-                  <strong>${escapeHtml(t.title || "(no title)")}</strong>
-                  <span class="badge">${escapeHtml(t.status || "New")}</span>
-                  <span class="badge ghost">${escapeHtml(
-                    t.priority || "Low"
-                  )}</span>
-                  ${
-                    t.category
-                      ? `<span class="badge ghost">${escapeHtml(
-                          t.category
-                        )}</span>`
-                      : ""
-                  }
-                </div>
-                <div class="muted" style="margin-top:6px;max-width:80ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
-                  ${escapeHtml(t.description || "")}
-                </div>
-              </div>
-              <div style="text-align:right;min-width:180px">
-                ${
-                  t.assignee
-                    ? `<div class="muted">Assignee: ${escapeHtml(
-                        t.assignee
-                      )}</div>`
-                    : `<div class="muted">Unassigned</div>`
-                }
-                <div class="muted">${when}</div>
-                <div class="muted">#${escapeHtml(t.id)}</div>
-              </div>
-            </div>
-          </article>
-        `;
-        }
-
-        function emptyState() {
-          return `
-          <div class="card" style="padding:16px;text-align:center">
-            <div class="muted">No tickets found. Try adjusting filters or create a new ticket.</div>
-          </div>
-        `;
-        }
-
-        // tiny escape
+        // Helpers
         function escapeHtml(s) {
           return String(s).replace(
             /[&<>"']/g,
@@ -189,13 +129,123 @@
           );
         }
 
+        function ticketCard(t) {
+          const updated = t.updatedAt
+            ? new Date(t.updatedAt)
+            : t.createdAt
+            ? new Date(t.createdAt)
+            : null;
+          const when = updated ? updated.toLocaleString() : "";
+          return `
+            <article class="card ticket-card" data-id="${
+              t.id
+            }" style="cursor:pointer;padding:12px">
+              <div style="display:flex;justify-content:space-between;gap:12px">
+                <div>
+                  <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                    <strong>${escapeHtml(t.title || "(no title)")}</strong>
+                    <span class="badge">${escapeHtml(t.status || "New")}</span>
+                    <span class="badge ghost">${escapeHtml(
+                      t.priority || "Low"
+                    )}</span>
+                    ${
+                      t.category
+                        ? `<span class="badge ghost">${escapeHtml(
+                            t.category
+                          )}</span>`
+                        : ""
+                    }
+                  </div>
+                  <div class="muted" style="margin-top:6px;max-width:80ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                    ${escapeHtml(t.description || "")}
+                  </div>
+                </div>
+                <div style="text-align:right;min-width:180px">
+                  ${
+                    t.assignee
+                      ? `<div class="muted">Assignee: ${escapeHtml(
+                          t.assignee
+                        )}</div>`
+                      : `<div class="muted">Unassigned</div>`
+                  }
+                  <div class="muted">${when}</div>
+                  <div class="muted">#${escapeHtml(t.id)}</div>
+                </div>
+              </div>
+            </article>
+          `;
+        }
+
+        function emptyState() {
+          return `
+            <div class="card" style="padding:16px;text-align:center">
+              <div class="muted">No tickets found. Try adjusting filters or create a new ticket.</div>
+            </div>
+          `;
+        }
+
+        async function fetchPage() {
+          const offset = (PAGE - 1) * PAGE_SIZE;
+          const { items, total } = await API.searchTickets({
+            q: LAST_QUERY.q,
+            status: LAST_QUERY.status,
+            limit: PAGE_SIZE,
+            offset,
+            sort: "updated_at",
+            order: "desc",
+          });
+          TOTAL = Number.isFinite(total) ? total : items.length;
+          return items;
+        }
+
+        async function render() {
+          const items = await fetchPage();
+
+          // Results
+          resEl.innerHTML = items.length
+            ? items.map(ticketCard).join("")
+            : emptyState();
+
+          // Wire clicks
+          resEl.querySelectorAll(".ticket-card").forEach((card) => {
+            card.addEventListener("click", () => {
+              const id = card.getAttribute("data-id");
+              location.href = `./ticket-detail.html?id=${encodeURIComponent(
+                id
+              )}`;
+            });
+          });
+
+          // Pagination UI
+          const totalPages = Math.max(1, Math.ceil(TOTAL / PAGE_SIZE));
+          pageEl.textContent = `Page ${PAGE} of ${totalPages}`;
+          prevEl.disabled = PAGE <= 1;
+          nextEl.disabled = PAGE >= totalPages;
+
+          // Result counter
+          countEl.textContent = `${TOTAL} result${TOTAL === 1 ? "" : "s"}`;
+        }
+
+        async function load() {
+          LAST_QUERY = {
+            q: qEl.value.trim(),
+            status: stEl.value.trim(),
+          };
+          PAGE = 1; // reset page on new query
+          PAGE_SIZE = +limEl.value || 20;
+          await render();
+        }
+
         // Events
         document.getElementById("btn-apply").onclick = load;
+
         document.getElementById("btn-clear").onclick = () => {
           qEl.value = "";
           stEl.value = "";
+          limEl.value = "20";
           load();
         };
+
         prevEl.onclick = () => {
           if (PAGE > 1) {
             PAGE--;
@@ -203,14 +253,20 @@
           }
         };
         nextEl.onclick = () => {
-          const max = Math.ceil(CACHE.length / PAGE_SIZE) || 1;
+          const max = Math.max(1, Math.ceil(TOTAL / PAGE_SIZE));
           if (PAGE < max) {
             PAGE++;
             render();
           }
         };
 
-        // init
+        limEl.onchange = () => {
+          PAGE = 1;
+          PAGE_SIZE = +limEl.value || 20;
+          render();
+        };
+
+        // Init
         load();
       })();
     </script>

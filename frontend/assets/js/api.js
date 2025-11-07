@@ -1,12 +1,12 @@
 /* frontend/assets/js/api.js
-   Advanced API client for the IT Ticketing System.
-   Assumes Nginx proxies /api → backend (so same-origin, no CORS headaches).
+   API client for the IT Ticketing System.
+   Assumes Nginx proxies /api → backend (so same-origin, cookies ok).
 */
 (() => {
   const BASE = "/api"; // Nginx proxy in frontend/nginx.conf
-  const DEMO_NS = "it_demo_v1"; // for offline fallback
+  const DEMO_NS = "it_demo_v1"; // offline/localStorage namespace
 
-  // -------- Utilities --------
+  // ---------- Utilities ----------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
   class ApiError extends Error {
@@ -18,21 +18,21 @@
     }
   }
 
-  // Optional bearer token support (when you add real auth)
+  // Optional bearer token support (kept for future); cookies are primary.
   const Token = {
     get: () => localStorage.getItem("auth_token") || null,
     set: (t) => localStorage.setItem("auth_token", t),
     clear: () => localStorage.removeItem("auth_token"),
   };
 
-  // Core fetch with retries + JSON parsing
+  // Core fetch with retries + JSON/text handling
   async function fetchJSON(
     path,
     {
       method = "GET",
       body,
       headers = {},
-      retries = 3,
+      retries = 2,
       retryBackoffBase = 250,
       credentials = "include",
     } = {}
@@ -42,50 +42,45 @@
     const token = Token.get();
     if (token) h["Authorization"] = `Bearer ${token}`;
 
+    const payload =
+      body && typeof body !== "string" ? JSON.stringify(body) : body;
+
     for (let attempt = 0; attempt <= retries; attempt++) {
       try {
-        const res = await fetch("/api/auth/login", {
-          method: "POST",
-          headers: { "Content-Type": "application/json" },
-          credentials: "include",
-          body: JSON.stringify({ email, password }),
+        const res = await fetch(url, {
+          method,
+          headers: h,
+          body: payload,
+          credentials,
         });
 
+        // Success
         if (res.ok) {
-          localStorage.setItem("demo_email", email);
-          return true;
+          if (res.status === 204) return null;
+          const ct = res.headers.get("content-type") || "";
+          if (ct.includes("application/json")) return await res.json();
+          return await res.text();
         }
-        return false;
 
-        // // Success path
-        // if (res.ok) {
-        //   // no content
-        //   if (res.status === 204) return null;
-        //   // try json; if not json, return text
-        //   const ct = res.headers.get("content-type") || "";
-        //   if (ct.includes("application/json")) return await res.json();
-        //   return await res.text();
-        // }
-
-        // Non-2xx: decide whether to retry
+        // Error: maybe retry
         const isRetryable = [409, 429, 500, 502, 503, 504].includes(res.status);
-        let payload = null;
+        let errPayload = null;
         try {
-          payload = await res.json();
+          errPayload = await res.json();
         } catch {
-          payload = { error: await res.text() };
+          errPayload = { error: await res.text() };
         }
+
         if (isRetryable && attempt < retries) {
           await sleep(2 ** attempt * retryBackoffBase);
           continue;
         }
         throw new ApiError(
-          payload?.error || payload?.message || `HTTP ${res.status}`,
+          errPayload?.error || errPayload?.message || `HTTP ${res.status}`,
           res.status,
-          payload
+          errPayload
         );
       } catch (e) {
-        // Network error: retry
         const isNetwork =
           e instanceof TypeError || (e.name === "ApiError" && e.status === 0);
         if (isNetwork && attempt < retries) {
@@ -97,7 +92,7 @@
     }
   }
 
-  // -------- Offline fallback (localStorage) --------
+  // ---------- Offline fallback (localStorage) ----------
   function _dbLoad() {
     const raw = localStorage.getItem(DEMO_NS);
     if (raw) return JSON.parse(raw);
@@ -160,38 +155,93 @@
   }
   const _dbSave = (d) => localStorage.setItem(DEMO_NS, JSON.stringify(d));
 
-  // Filter helper for offline list
-  function _filterList(list, { q = "", status = "" } = {}) {
+  function _filterList(
+    list,
+    { q = "", status = "", priority = "", category = "" } = {}
+  ) {
     let arr = list
       .slice()
       .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
     if (q) {
       const needle = q.toLowerCase();
       arr = arr.filter((t) =>
-        (t.title + t.description).toLowerCase().includes(needle)
+        (t.title + " " + t.description).toLowerCase().includes(needle)
       );
     }
     if (status) arr = arr.filter((t) => t.status === status);
+    if (priority) arr = arr.filter((t) => t.priority === priority);
+    if (category) arr = arr.filter((t) => t.category === category);
     return arr;
   }
 
-  // -------- Public API (matches your mock) --------
+  // ---------- Public API ----------
   const API = {
-    async listTickets({ q = "", status = "" } = {}) {
+    // New: server-side filters + pagination; returns { items, total }
+    async searchTickets({
+      q = "",
+      status = "",
+      priority = "",
+      category = "",
+      assignee = "",
+      limit = 10,
+      offset = 0,
+      sort = "updated_at",
+      order = "desc",
+    } = {}) {
       try {
-        const query = new URLSearchParams();
-        if (q) query.set("q", q);
-        if (status) query.set("status", status);
-        const path = `/tickets${
-          query.toString() ? `?${query.toString()}` : ""
-        }`;
-        return await fetchJSON(path, { method: "GET" });
+        const params = new URLSearchParams();
+        if (q) params.set("q", q);
+        if (status) params.set("status", status);
+        if (priority) params.set("priority", priority);
+        if (category) params.set("category", category);
+        if (assignee) params.set("assignee", assignee);
+        params.set("limit", String(limit));
+        params.set("offset", String(offset));
+        params.set("sort", sort);
+        params.set("order", order);
+
+        // Backend returns { items, total } (advanced) OR [] (legacy)
+        const data = await fetchJSON(`/tickets?${params.toString()}`, {
+          method: "GET",
+        });
+        if (Array.isArray(data)) {
+          // legacy fallback
+          return { items: data, total: data.length };
+        }
+        // expected modern shape
+        if (data && Array.isArray(data.items)) {
+          return {
+            items: data.items,
+            total:
+              typeof data.total === "number" ? data.total : data.items.length,
+          };
+        }
+        // ultimate fallback
+        return { items: [], total: 0 };
       } catch (e) {
-        // offline fallback
-        console.warn("[API.listTickets] Falling back to localStorage:", e);
+        // Offline fallback: localStorage + client-side paging
+        console.warn("[API.searchTickets] Falling back to localStorage:", e);
         const db = _dbLoad();
-        return _filterList(db.tickets, { q, status });
+        const filtered = _filterList(db.tickets, {
+          q,
+          status,
+          priority,
+          category,
+        });
+        const items = filtered.slice(offset, offset + limit);
+        return { items, total: filtered.length };
       }
+    },
+
+    // Backward-compat — returns array only (older pages). Internally uses searchTickets.
+    async listTickets({ q = "", status = "" } = {}) {
+      const { items } = await this.searchTickets({
+        q,
+        status,
+        limit: 100,
+        offset: 0,
+      });
+      return items;
     },
 
     async getTicket(id) {
@@ -222,7 +272,7 @@
           priority: t.priority || "Low",
           department: t.department || "",
           status: "New",
-          assignee: "",
+          assignee: t.assignee || "",
           updatedAt: now,
           createdAt: now,
           comments: [],
@@ -253,6 +303,7 @@
 
     async addComment(id, text) {
       try {
+        // Server returns full updated ticket (your backend does this)
         return await fetchJSON(`/tickets/${encodeURIComponent(id)}/comments`, {
           method: "POST",
           body: { text },
@@ -270,19 +321,34 @@
       }
     },
 
-    // Derive KPIs on the client from list (works online or offline)
+    // NEW: backend reports summary (with client-side fallback)
+    async getReportSummary() {
+      try {
+        // backend returns: { open, resolved7d, highCriticalOpen }
+        return await fetchJSON(`/reports/summary`, { method: "GET" });
+      } catch (e) {
+        console.warn(
+          "[API.getReportSummary] falling back to client-side stats:",
+          e
+        );
+        const { open, resolved7d, risk } = await this.getStats();
+        return { open, resolved7d, highCriticalOpen: risk };
+      }
+    },
+
+    // Simple KPIs; uses server list when available
     async getStats() {
-      const list = await this.listTickets({});
+      const { items } = await this.searchTickets({ limit: 200, offset: 0 });
       const now = Date.now();
-      const open = list.filter(
+      const open = items.filter(
         (t) => !["Resolved", "Closed"].includes(t.status)
       ).length;
-      const resolved7d = list.filter(
-        (t) =>
-          t.status === "Resolved" &&
-          now - new Date(t.updatedAt || Date.now()).getTime() < 7 * 86400_000
-      ).length;
-      const risk = list.filter(
+      const resolved7d = items.filter((t) => {
+        if (!["Resolved", "Closed"].includes(t.status)) return false;
+        const ts = new Date(t.updatedAt || t.createdAt || Date.now()).getTime();
+        return now - ts < 7 * 86400_000;
+      }).length;
+      const risk = items.filter(
         (t) =>
           ["High", "Critical"].includes(t.priority) &&
           !["Resolved", "Closed"].includes(t.status)
@@ -291,24 +357,33 @@
     },
   };
 
-  // Simple “session” facade for now (keeps parity with your mock)
+  // ---------- Auth (cookie-based; works with your Go backend) ----------
   const Auth = {
     async login(email, password) {
-      // When you add real backend auth, call it here and store token/cookie.
-      // For now, keep the demo login behavior.
-      const db = _dbLoad();
-      const user = db.users.find(
-        (u) => u.email === email && u.password === password
-      );
-      if (user) {
-        localStorage.setItem("demo_email", user.email);
-        return true;
-      }
-      return false;
+      const res = await fetch(`${BASE}/auth/login`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        credentials: "include",
+        body: JSON.stringify({ email, password }),
+      });
+      if (!res.ok) return false;
+      // backend returns the user json; cookie set via Set-Cookie
+      const user = await res.json().catch(() => null);
+      if (user?.email) localStorage.setItem("demo_email", user.email); // keep minimal UI state
+      return true;
     },
-    logout() {
+    async logout() {
+      await fetch(`${BASE}/auth/logout`, {
+        method: "POST",
+        credentials: "include",
+      }).catch(() => {});
       localStorage.removeItem("demo_email");
       Token.clear();
+    },
+    async me() {
+      const res = await fetch(`${BASE}/auth/me`, { credentials: "include" });
+      if (!res.ok) return null;
+      return await res.json();
     },
   };
 
