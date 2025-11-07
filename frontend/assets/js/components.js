@@ -14,7 +14,16 @@
       if (meRes.ok) {
         const me = await meRes.json();
         const u = document.getElementById("nav-username");
-        if (u) u.textContent = me.email || me.id || "";
+
+        if (u) {
+          if (me.name && me.name.trim() !== "") {
+            u.textContent = me.name;
+          } else if (me.email) {
+            u.textContent = me.email;
+          } else {
+            u.textContent = me.id;
+          }
+        }
       } else {
         // Not authenticated — optionally hide logout and show Sign in
         const btn = document.getElementById("btn-logout");

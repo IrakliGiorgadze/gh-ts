@@ -6,15 +6,19 @@ import (
 	"time"
 
 	"gh-ts/internal/middleware"
+	"gh-ts/internal/repository"
 	"gh-ts/internal/service"
 	"gh-ts/internal/utils"
 )
 
 type AuthHTTP struct {
-	svc *service.AuthService
+	svc   *service.AuthService
+	users repository.UserRepository
 }
 
-func NewAuthHTTP(s *service.AuthService) *AuthHTTP { return &AuthHTTP{svc: s} }
+func NewAuthHTTP(s *service.AuthService, users repository.UserRepository) *AuthHTTP {
+	return &AuthHTTP{svc: s, users: users}
+}
 
 func (h *AuthHTTP) Register() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
@@ -47,36 +51,49 @@ func (h *AuthHTTP) Login(secret string) http.HandlerFunc {
 			utils.Error(w, http.StatusBadRequest, "invalid json")
 			return
 		}
+
 		token, u, err := h.svc.Login(r.Context(), in.Email, in.Password)
 		if err != nil {
 			utils.Error(w, http.StatusUnauthorized, "invalid credentials")
 			return
 		}
 
-		// httpOnly cookie session
-		c := &http.Cookie{
+		// Issue httpOnly session cookie
+		http.SetCookie(w, &http.Cookie{
 			Name:     "session",
 			Value:    token,
 			Path:     "/",
 			HttpOnly: true,
+			// Lax works for same-origin (frontend via Nginx proxy)
 			SameSite: http.SameSiteLaxMode,
-			Secure:   false, // set true behind HTTPS/production
-			Expires:  time.Now().Add(24 * time.Hour),
-		}
-		http.SetCookie(w, c)
+			// Set true behind HTTPS in prod
+			Secure:  false,
+			Expires: time.Now().Add(24 * time.Hour),
+		})
 
-		utils.JSON(w, http.StatusOK, u)
+		// Return the public profile as body
+		utils.JSON(w, http.StatusOK, map[string]any{
+			"id":        u.ID,
+			"name":      u.Name,
+			"email":     u.Email,
+			"role":      u.Role,
+			"createdAt": u.CreatedAt,
+			"updatedAt": u.UpdatedAt,
+		})
 	}
 }
 
 func (h *AuthHTTP) Logout() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
-		c := &http.Cookie{
-			Name: "session", Value: "",
-			Path: "/", HttpOnly: true, SameSite: http.SameSiteLaxMode,
-			MaxAge: -1,
-		}
-		http.SetCookie(w, c)
+		http.SetCookie(w, &http.Cookie{
+			Name:     "session",
+			Value:    "",
+			Path:     "/",
+			HttpOnly: true,
+			SameSite: http.SameSiteLaxMode,
+			MaxAge:   -1,              // expire immediately
+			Expires:  time.Unix(0, 0), // for older browsers
+		})
 		w.WriteHeader(http.StatusNoContent)
 	}
 }
@@ -88,7 +105,21 @@ func (h *AuthHTTP) Me() http.HandlerFunc {
 			utils.Error(w, http.StatusUnauthorized, "not authenticated")
 			return
 		}
-		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
-		utils.JSON(w, http.StatusOK, map[string]string{"id": uid, "role": role})
+
+		// Load full user profile
+		u, err := h.users.GetByID(r.Context(), uid)
+		if err != nil || u == nil {
+			utils.Error(w, http.StatusNotFound, "user not found")
+			return
+		}
+
+		utils.JSON(w, http.StatusOK, map[string]any{
+			"id":        u.ID,
+			"name":      u.Name,
+			"email":     u.Email,
+			"role":      u.Role,
+			"createdAt": u.CreatedAt,
+			"updatedAt": u.UpdatedAt,
+		})
 	}
 }

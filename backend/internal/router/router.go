@@ -20,13 +20,7 @@ import (
 func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 	r := chi.NewRouter()
 
-	r.Use(middleware.WithAuth(log, cfg))
-
-	// Repos & services
-	userRepo := postgres.NewUserRepo(db)
-	authSvc := service.NewAuthService(userRepo, cfg.SessionSecret)
-	auth := handlers.NewAuthHTTP(authSvc)
-
+	// Core middleware (order: recover/logging/cors/rate-limit/auth)
 	r.Use(middleware.RequestLogger(log))
 	r.Use(middleware.Recoverer(log))
 	r.Use(cors.Handler(cors.Options{
@@ -36,31 +30,38 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 		AllowCredentials: true,
 	}))
 	r.Use(httprate.LimitByIP(200, time.Minute))
+	r.Use(middleware.WithAuth(log, cfg)) // attaches user id/role to context if cookie present
 
 	// Health
 	r.Get("/healthz", handlers.Health())
 	r.Get("/api/healthz", handlers.Health())
 
-	// Repos + handlers
-	ticketRepo := postgres.NewTicketRepo(db)
-	th := handlers.NewTicketHTTP(ticketRepo)
+	// Repos & services
+	userRepo := postgres.NewUserRepo(db)
+	authSvc := service.NewAuthService(userRepo, cfg.SessionSecret)
+	authH := handlers.NewAuthHTTP(authSvc, userRepo) // <-- pass userRepo
 
+	ticketRepo := postgres.NewTicketRepo(db)
+	ticketH := handlers.NewTicketHTTP(ticketRepo)
+
+	// Tickets
 	r.Route("/api/tickets", func(r chi.Router) {
-		r.Get("/", th.List())
-		r.Post("/", th.Create())
+		// Optionally add auth guard: r.Use(middleware.RequireAuth)
+		r.Get("/", ticketH.List())
+		r.Post("/", ticketH.Create())
 		r.Route("/{id}", func(r chi.Router) {
-			r.Get("/", th.Get())
-			r.Patch("/", th.Update())
-			r.Post("/comments", th.AddComment())
+			r.Get("/", ticketH.Get())
+			r.Patch("/", ticketH.Update())
+			r.Post("/comments", ticketH.AddComment())
 		})
 	})
 
-	// Auth routes
+	// Auth
 	r.Route("/api/auth", func(r chi.Router) {
-		r.Post("/register", auth.Register())
-		r.Post("/login", auth.Login(cfg.SessionSecret))
-		r.Post("/logout", auth.Logout())
-		r.Get("/me", auth.Me())
+		r.Post("/register", authH.Register())
+		r.Post("/login", authH.Login(cfg.SessionSecret))
+		r.Post("/logout", authH.Logout())
+		r.Get("/me", authH.Me())
 	})
 
 	return r
