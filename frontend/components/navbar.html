@@ -1,0 +1,30 @@
+<!-- Global top navbar -->
+<nav
+  class="navbar"
+  style="
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    padding: 12px 16px;
+    border-bottom: 1px solid #eee;
+  "
+>
+  <a
+    href="/index.html"
+    class="logo"
+    style="font-weight: 600; text-decoration: none"
+    >IT Ticketing</a
+  >
+
+  <div class="nav-links" style="display: flex; gap: 12px; margin-left: 12px">
+    <a href="/pages/tickets.html" class="link">Tickets</a>
+    <a href="/pages/create-ticket.html" class="link">Create</a>
+    <a href="/pages/reports.html" class="link">Reports</a>
+  </div>
+
+  <div style="margin-left: auto; display: flex; align-items: center; gap: 12px">
+    <span id="nav-username" class="muted"></span>
+    <!-- keep EXACT id/class as requested -->
+    <button class="btn ghost" id="btn-logout">Logout</button>
+  </div>
+</nav>

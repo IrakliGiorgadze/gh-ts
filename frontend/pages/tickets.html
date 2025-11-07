@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Tickets - IT Ticketing</title>
+    <link rel="stylesheet" href="../assets/css/main.css" />
+  </head>
+  <body>
+    <!-- Global navbar -->
+    <div id="navbar"></div>
+
+    <main
+      class="container"
+      style="padding: 16px; max-width: 1100px; margin: auto"
+    >
+      <header
+        style="
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex-wrap: wrap;
+          margin-bottom: 12px;
+        "
+      >
+        <h2 style="margin: 0">Tickets</h2>
+        <a class="btn" href="./create-ticket.html" style="margin-left: auto"
+          >+ New Ticket</a
+        >
+      </header>
+
+      <!-- Filters -->
+      <section class="card" style="padding: 12px; margin-bottom: 12px">
+        <div
+          style="display: flex; gap: 10px; flex-wrap: wrap; align-items: center"
+        >
+          <input
+            id="filter-q"
+            class="input"
+            placeholder="Search title or description"
+            style="min-width: 260px"
+          />
+          <select id="filter-status" class="input">
+            <option value="">All statuses</option>
+            <option>New</option>
+            <option>Open</option>
+            <option>In Progress</option>
+            <option>Pending</option>
+            <option>Resolved</option>
+            <option>Closed</option>
+          </select>
+          <button id="btn-apply" class="btn">Apply</button>
+          <button id="btn-clear" class="btn ghost">Clear</button>
+        </div>
+      </section>
+
+      <!-- Results -->
+      <section id="results" class="grid" style="gap: 10px"></section>
+
+      <!-- Pagination (client-side simple) -->
+      <nav
+        style="
+          display: flex;
+          gap: 8px;
+          justify-content: center;
+          margin-top: 14px;
+        "
+      >
+        <button id="prev" class="btn ghost">Prev</button>
+        <span id="page-indicator" class="muted"></span>
+        <button id="next" class="btn ghost">Next</button>
+      </nav>
+    </main>
+
+    <script src="/assets/js/api.js"></script>
+    <script src="/assets/js/components.js"></script>
+    <script src="/assets/js/guard.js"></script>
+    <script>
+      (function () {
+        // State
+        let PAGE = 1,
+          PAGE_SIZE = 10,
+          CACHE = [];
+
+        // DOM
+        const qEl = document.getElementById("filter-q");
+        const stEl = document.getElementById("filter-status");
+        const resEl = document.getElementById("results");
+        const prevEl = document.getElementById("prev");
+        const nextEl = document.getElementById("next");
+        const pageEl = document.getElementById("page-indicator");
+
+        async function load() {
+          const q = qEl.value.trim();
+          const status = stEl.value.trim();
+          // Uses your advanced API client with offline fallback
+          CACHE = await API.listTickets({ q, status });
+          PAGE = 1;
+          render();
+        }
+
+        function render() {
+          const start = (PAGE - 1) * PAGE_SIZE;
+          const slice = CACHE.slice(start, start + PAGE_SIZE);
+
+          resEl.innerHTML =
+            slice.map((row) => ticketCard(row)).join("") || emptyState();
+
+          // wire clicks
+          resEl.querySelectorAll(".ticket-card").forEach((card) => {
+            card.addEventListener("click", () => {
+              const id = card.getAttribute("data-id");
+              location.href = `./ticket-detail.html?id=${encodeURIComponent(
+                id
+              )}`;
+            });
+          });
+
+          // pagination ui
+          const totalPages = Math.max(1, Math.ceil(CACHE.length / PAGE_SIZE));
+          pageEl.textContent = `Page ${PAGE} of ${totalPages}`;
+          prevEl.disabled = PAGE <= 1;
+          nextEl.disabled = PAGE >= totalPages;
+        }
+
+        function ticketCard(t) {
+          const updated = t.updatedAt ? new Date(t.updatedAt) : null;
+          const when = updated ? updated.toLocaleString() : "";
+          return `
+          <article class="card ticket-card" data-id="${
+            t.id
+          }" style="cursor:pointer;padding:12px">
+            <div style="display:flex;justify-content:space-between;gap:12px">
+              <div>
+                <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+                  <strong>${escapeHtml(t.title || "(no title)")}</strong>
+                  <span class="badge">${escapeHtml(t.status || "New")}</span>
+                  <span class="badge ghost">${escapeHtml(
+                    t.priority || "Low"
+                  )}</span>
+                  ${
+                    t.category
+                      ? `<span class="badge ghost">${escapeHtml(
+                          t.category
+                        )}</span>`
+                      : ""
+                  }
+                </div>
+                <div class="muted" style="margin-top:6px;max-width:80ch;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">
+                  ${escapeHtml(t.description || "")}
+                </div>
+              </div>
+              <div style="text-align:right;min-width:180px">
+                ${
+                  t.assignee
+                    ? `<div class="muted">Assignee: ${escapeHtml(
+                        t.assignee
+                      )}</div>`
+                    : `<div class="muted">Unassigned</div>`
+                }
+                <div class="muted">${when}</div>
+                <div class="muted">#${escapeHtml(t.id)}</div>
+              </div>
+            </div>
+          </article>
+        `;
+        }
+
+        function emptyState() {
+          return `
+          <div class="card" style="padding:16px;text-align:center">
+            <div class="muted">No tickets found. Try adjusting filters or create a new ticket.</div>
+          </div>
+        `;
+        }
+
+        // tiny escape
+        function escapeHtml(s) {
+          return String(s).replace(
+            /[&<>"']/g,
+            (m) =>
+              ({
+                "&": "&amp;",
+                "<": "&lt;",
+                ">": "&gt;",
+                '"': "&quot;",
+                "'": "&#039;",
+              }[m])
+          );
+        }
+
+        // Events
+        document.getElementById("btn-apply").onclick = load;
+        document.getElementById("btn-clear").onclick = () => {
+          qEl.value = "";
+          stEl.value = "";
+          load();
+        };
+        prevEl.onclick = () => {
+          if (PAGE > 1) {
+            PAGE--;
+            render();
+          }
+        };
+        nextEl.onclick = () => {
+          const max = Math.ceil(CACHE.length / PAGE_SIZE) || 1;
+          if (PAGE < max) {
+            PAGE++;
+            render();
+          }
+        };
+
+        // init
+        load();
+      })();
+    </script>
+  </body>
+</html>

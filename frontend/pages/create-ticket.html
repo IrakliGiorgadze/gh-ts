@@ -1,68 +1,84 @@
-
-<!doctype html>
+<!DOCTYPE html>
 <html lang="en">
-<head>
-  <meta charset="utf-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>Create Ticket</title>
-  <link rel="stylesheet" href="../assets/css/main.css" />
-</head>
-<body>
-  <div class="container">
-    <div class="nav">
-      <div class="brand"><a href="../index.html">← Back</a></div>
-      <div id="nav-actions"></div>
-    </div>
-    <div class="card">
-      <h2 style="margin-top:0">New Ticket</h2>
-      <div class="grid grid-2">
-        <div>
-          <label>Title</label>
-          <input id="t-title" class="input" placeholder="Short summary">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Create Ticket</title>
+    <link rel="stylesheet" href="../assets/css/main.css" />
+  </head>
+  <body>
+    <div id="navbar"></div>
+    <div class="container">
+      <div class="nav">
+        <div class="brand"><a href="../index.html">← Back</a></div>
+        <div id="nav-actions"></div>
+      </div>
+      <div class="card">
+        <h2 style="margin-top: 0">New Ticket</h2>
+        <div class="grid grid-2">
+          <div>
+            <label>Title</label>
+            <input id="t-title" class="input" placeholder="Short summary" />
+          </div>
+          <div>
+            <label>Priority</label>
+            <select id="t-priority" class="input">
+              <option>Low</option>
+              <option>Medium</option>
+              <option>High</option>
+              <option>Critical</option>
+            </select>
+          </div>
+          <div>
+            <label>Category</label>
+            <select id="t-category" class="input">
+              <option>Software</option>
+              <option>Hardware</option>
+              <option>Network</option>
+              <option>Access</option>
+            </select>
+          </div>
+          <div>
+            <label>Affected Department</label>
+            <input id="t-dept" class="input" placeholder="e.g. HR, Finance" />
+          </div>
+          <div style="grid-column: span 2">
+            <label>Description</label>
+            <textarea
+              id="t-desc"
+              class="input"
+              rows="6"
+              placeholder="Describe the problem"
+            ></textarea>
+          </div>
         </div>
-        <div>
-          <label>Priority</label>
-          <select id="t-priority" class="input">
-            <option>Low</option><option>Medium</option><option>High</option><option>Critical</option>
-          </select>
-        </div>
-        <div>
-          <label>Category</label>
-          <select id="t-category" class="input">
-            <option>Software</option><option>Hardware</option><option>Network</option><option>Access</option>
-          </select>
-        </div>
-        <div>
-          <label>Affected Department</label>
-          <input id="t-dept" class="input" placeholder="e.g. HR, Finance">
-        </div>
-        <div style="grid-column: span 2">
-          <label>Description</label>
-          <textarea id="t-desc" class="input" rows="6" placeholder="Describe the problem"></textarea>
+        <div class="row" style="margin-top: 12px; justify-content: flex-end">
+          <button class="btn ghost" onclick="location.href='../index.html'">
+            Cancel
+          </button>
+          <button class="btn" id="btn-create">Create</button>
         </div>
       </div>
-      <div class="row" style="margin-top:12px;justify-content:flex-end">
-        <button class="btn ghost" onclick="location.href='../index.html'">Cancel</button>
-        <button class="btn" id="btn-create">Create</button>
-      </div>
     </div>
-  </div>
-  <script src="../assets/js/utils.js"></script>
-  <script src="../assets/js/api.js"></script>
-  <script src="../assets/js/auth.js"></script>
-  <script>
-    addDefaultNav('nav-actions');
-    document.getElementById('btn-create').addEventListener('click', async () => {
-      const t = {
-        title: val('t-title'),
-        description: val('t-desc'),
-        category: val('t-category'),
-        priority: val('t-priority'),
-        department: val('t-dept'),
-      };
-      const created = await API.createTicket(t);
-      location.href = `./ticket-detail.html?id=${created.id}`;
-    });
-  </script>
-</body>
+    <script src="../assets/js/utils.js"></script>
+    <script src="../assets/js/api.js"></script>
+    <script src="/assets/js/components.js"></script>
+    <script src="../assets/js/auth.js"></script>
+    <script>
+      addDefaultNav("nav-actions");
+      document
+        .getElementById("btn-create")
+        .addEventListener("click", async () => {
+          const t = {
+            title: val("t-title"),
+            description: val("t-desc"),
+            category: val("t-category"),
+            priority: val("t-priority"),
+            department: val("t-dept"),
+          };
+          const created = await API.createTicket(t);
+          location.href = `./ticket-detail.html?id=${created.id}`;
+        });
+    </script>
+  </body>
 </html>
