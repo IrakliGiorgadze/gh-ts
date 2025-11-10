@@ -10,8 +10,6 @@
 
   // Public pages that do NOT require auth (adjust as you like)
   const PUBLIC_PATHS = new Set([
-    "/", // usually resolves to /index.html via nginx
-    HOME_PATH,
     LOGIN_PATH,
     REGISTER_PATH,
   ]);
@@ -35,8 +33,7 @@
   }
 
   function isPublicPath(pathname) {
-    // Normalize: treat / and /index.html as the same
-    if (pathname === "/") return true;
+    // Normalize trailing slashes
     if (pathname.endsWith("/") && PUBLIC_PATHS.has(pathname.slice(0, -1)))
       return true;
     return PUBLIC_PATHS.has(pathname);

@@ -7,6 +7,7 @@ import (
 
 	"gh-ts/internal/config"
 	"gh-ts/internal/utils"
+
 	"github.com/rs/zerolog"
 )
 
@@ -32,11 +33,21 @@ func WithAuth(log zerolog.Logger, cfg config.Config) func(http.Handler) http.Han
 				next.ServeHTTP(w, r) // unauthenticated; handlers can decide
 				return
 			}
+
 			claims, err := utils.ParseJWT(cfg.SessionSecret, tok)
 			if err != nil {
+				// IMPORTANT: clear broken/expired cookie so it stops being sent
+				http.SetCookie(w, &http.Cookie{
+					Name:     "session",
+					Value:    "",
+					Path:     "/",
+					HttpOnly: true,
+					MaxAge:   -1,
+				})
 				next.ServeHTTP(w, r)
 				return
 			}
+
 			ctx := context.WithValue(r.Context(), CtxUserID, claims.UserID)
 			ctx = context.WithValue(ctx, CtxRole, claims.Role)
 			next.ServeHTTP(w, r.WithContext(ctx))

@@ -106,10 +106,9 @@ func (h *AuthHTTP) Me() http.HandlerFunc {
 			return
 		}
 
-		// Load full user profile
 		u, err := h.users.GetByID(r.Context(), uid)
-		if err != nil || u == nil {
-			utils.Error(w, http.StatusNotFound, "user not found")
+		if err != nil || u == nil || !u.Active {
+			utils.Error(w, http.StatusUnauthorized, "not authenticated")
 			return
 		}
 

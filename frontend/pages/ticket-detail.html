@@ -28,6 +28,11 @@
 
           <p id="t-desc" style="margin-top: 12px"></p>
 
+          <div style="margin-top: 12px; padding: 8px; background: rgba(255,255,255,0.05); border-radius: 4px;">
+            <div class="muted" style="font-size: 0.9em; margin-bottom: 4px">Current Assignee</div>
+            <div id="t-assignee-display" style="font-weight: 500"></div>
+          </div>
+
           <div class="row" id="status-row" style="gap: 8px; margin-top: 12px">
             <label>Status</label>
             <select id="sel-status" class="input" style="max-width: 240px">
@@ -42,6 +47,18 @@
             <span id="save-ok" class="badge" style="display: none">Saved</span>
             <span id="save-err" class="badge" style="display: none"
               >Save failed</span
+            >
+          </div>
+
+          <div class="row" id="assignee-row" style="gap: 8px; margin-top: 16px; display: none; padding: 12px; background: rgba(255,255,255,0.03); border-radius: 4px;">
+            <label style="font-weight: 500;">Reassign To</label>
+            <select id="sel-assignee" class="input" style="max-width: 240px">
+              <option value="">-- Select Agent --</option>
+            </select>
+            <button class="btn secondary" id="btn-reassign">Reassign</button>
+            <span id="assign-ok" class="badge" style="display: none">Reassigned</span>
+            <span id="assign-err" class="badge" style="display: none"
+              >Reassign failed</span
             >
           </div>
         </div>
@@ -81,19 +98,84 @@
         location.href = "./tickets.html";
       }
 
-      // Hide status controls for non-staff users
+      // Hide/show controls based on user role
+      let currentUser = null;
+      
+      // Function to show reassignment UI
+      async function showReassignmentUI() {
+        const assigneeRow = document.getElementById("assignee-row");
+        if (!assigneeRow) {
+          console.error("[Ticket Detail] assignee-row element not found!");
+          return;
+        }
+        
+        assigneeRow.style.display = "flex";
+        console.log("[Ticket Detail] Assignee row displayed");
+        
+        // Load agents for dropdown
+        const select = document.getElementById("sel-assignee");
+        if (!select) {
+          console.error("[Ticket Detail] sel-assignee element not found!");
+          return;
+        }
+        
+        // Wait for Users API to be available
+        let retries = 10;
+        while (retries > 0 && (typeof Users === 'undefined' || !Users.getAgents)) {
+          await new Promise(resolve => setTimeout(resolve, 100));
+          retries--;
+        }
+        
+        if (typeof Users !== 'undefined' && Users.getAgents) {
+          try {
+            console.log("[Ticket Detail] Loading agents...");
+            const agents = await Users.getAgents();
+            console.log("[Ticket Detail] Loaded agents:", agents.length);
+            
+            // Clear existing options except the first one
+            select.innerHTML = '<option value="">-- Select Agent --</option>';
+            
+            agents.forEach(agent => {
+              const option = document.createElement("option");
+              option.value = agent.id;
+              option.textContent = `${agent.name} (${agent.email})`;
+              select.appendChild(option);
+            });
+            console.log("[Ticket Detail] Agents added to dropdown");
+          } catch (e) {
+            console.error("[Ticket Detail] Failed to load agents:", e);
+          }
+        } else {
+          console.error("[Ticket Detail] Users API not available after retries. typeof Users:", typeof Users);
+        }
+      }
+      
       (async () => {
         try {
-          const me = await Auth.me();
+          currentUser = await Auth.me();
+          console.log("[Ticket Detail] Current user:", currentUser);
           const isStaff =
-            me && ["admin", "agent", "supervisor"].includes(me.role);
+            currentUser && ["admin", "agent", "supervisor"].includes(currentUser.role);
+          const isAdmin = currentUser && currentUser.role === "admin";
+          
+          console.log("[Ticket Detail] isStaff:", isStaff, "isAdmin:", isAdmin, "role:", currentUser?.role);
+          
           if (!isStaff) {
             const row =
               document.getElementById("sel-status")?.closest(".row") ||
               document.getElementById("status-row");
             if (row) row.style.display = "none";
           }
-        } catch (_) {
+          
+          // Show assignee reassignment only for admins
+          if (isAdmin) {
+            console.log("[Ticket Detail] Admin detected, showing reassignment UI");
+            await showReassignmentUI();
+          } else {
+            console.log("[Ticket Detail] Not admin, role:", currentUser?.role);
+          }
+        } catch (e) {
+          console.error("[Ticket Detail] Auth check failed:", e);
           // if /auth/me fails, treat as non-staff
           const row =
             document.getElementById("sel-status")?.closest(".row") ||
@@ -116,6 +198,19 @@
           byId("t-status").textContent = ticket.status || "New";
           byId("t-desc").textContent = ticket.description || "";
           byId("sel-status").value = ticket.status || "New";
+          
+          // Display current assignee
+          const assigneeDisplay = byId("t-assignee-display");
+          if (assigneeDisplay) {
+            const assigneeName = ticket.assigneeName || ticket.assigneeEmail || ticket.assignee || "Unassigned";
+            assigneeDisplay.textContent = assigneeName;
+          }
+          
+          // Set current assignee in dropdown if admin
+          if (currentUser && currentUser.role === "admin" && ticket.assignee) {
+            const select = byId("sel-assignee");
+            if (select) select.value = ticket.assignee;
+          }
 
           renderComments(ticket.comments || []);
         } catch (e) {
@@ -169,6 +264,49 @@
         }
       });
 
+      // Reassign ticket (admin only)
+      const btnReassign = byId("btn-reassign");
+      if (btnReassign) {
+        btnReassign.addEventListener("click", async () => {
+          const btn = byId("btn-reassign");
+          const ok = byId("assign-ok");
+          const err = byId("assign-err");
+          err.style.display = "none";
+          btn.disabled = true;
+          
+          const assigneeId = val("sel-assignee");
+          if (!assigneeId) {
+            err.textContent = "Please select an agent";
+            err.style.display = "inline-block";
+            btn.disabled = false;
+            return;
+          }
+          
+          try {
+            const updated = await API.updateTicket(idParam, { assignee: assigneeId });
+            // Reload ticket to get updated assignee name/email
+            ticket = await API.getTicket(idParam);
+            if (ticket) {
+              const assigneeDisplay = byId("t-assignee-display");
+              if (assigneeDisplay) {
+                const assigneeName = ticket.assigneeName || ticket.assigneeEmail || ticket.assignee || "Unassigned";
+                assigneeDisplay.textContent = assigneeName;
+              }
+              // Update dropdown selection
+              const select = byId("sel-assignee");
+              if (select) select.value = ticket.assignee || "";
+            }
+            showBadge(ok);
+          } catch (e) {
+            console.error(e);
+            err.textContent = "Reassign failed";
+            err.style.display = "inline-block";
+          } finally {
+            btn.disabled = false;
+          }
+        });
+      }
+
       // Add comment
       byId("btn-add-comment").addEventListener("click", async () => {
         const btn = byId("btn-add-comment");
@@ -204,20 +342,6 @@
       function showBadge(el) {
         el.style.display = "inline-block";
         setTimeout(() => (el.style.display = "none"), 1200);
-      }
-
-      function escapeHtml(s) {
-        return String(s).replace(
-          /[&<>"']/g,
-          (m) =>
-            ({
-              "&": "&amp;",
-              "<": "&lt;",
-              ">": "&gt;",
-              '"': "&quot;",
-              "'": "&#039;",
-            }[m])
-        );
       }
     </script>
   </body>

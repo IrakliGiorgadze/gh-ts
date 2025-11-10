@@ -49,7 +49,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
-		LEFT JOIN users u ON u.id = t.assignee
+		LEFT JOIN users u ON u.id = t.assignee::uuid
 		WHERE ` + strings.Join(conds, " AND ") + `
 		ORDER BY t.updated_at DESC
 		LIMIT $` + itoa(len(args)-1) + ` OFFSET $` + itoa(len(args))
@@ -112,7 +112,7 @@ func (r *TicketRepo) ListAdv(
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
-		LEFT JOIN users u ON u.id = t.assignee
+		LEFT JOIN users u ON u.id = t.assignee::uuid
 		%s
 		ORDER BY t.%s %s
 		LIMIT $%d OFFSET $%d
@@ -164,7 +164,7 @@ func (r *TicketRepo) Get(ctx context.Context, id string) (*models.Ticket, error)
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
-		LEFT JOIN users u ON u.id = t.assignee
+		LEFT JOIN users u ON u.id = t.assignee::uuid
 		WHERE t.id = $1
 	`, id).Scan(
 		&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
@@ -309,7 +309,9 @@ func buildTicketWhere(q, status, priority, category, assignee string) (string, [
 	}
 	if a := strings.TrimSpace(assignee); a != "" {
 		args = append(args, a)
-		clauses = append(clauses, "t.assignee = $"+itoa(len(args)))
+		// Cast assignee to UUID for comparison since it's stored as TEXT but represents a UUID
+		// Handle NULL assignee values by checking both NULL and UUID cast
+		clauses = append(clauses, "(t.assignee IS NOT NULL AND t.assignee::uuid = $"+itoa(len(args))+"::uuid)")
 	}
 
 	return "WHERE " + strings.Join(clauses, " AND "), args

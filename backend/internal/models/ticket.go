@@ -18,8 +18,8 @@ type Ticket struct {
 
 	// --- Optional display fields ---
 	// Populated automatically when joining with users table.
-	AssigneeName  string `json:"assignee_name,omitempty"`
-	AssigneeEmail string `json:"assignee_email,omitempty"`
+	AssigneeName  string `json:"assigneeName,omitempty"`
+	AssigneeEmail string `json:"assigneeEmail,omitempty"`
 }
 
 type Comment struct {

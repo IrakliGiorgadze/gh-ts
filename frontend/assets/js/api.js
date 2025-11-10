@@ -387,7 +387,44 @@
     },
   };
 
+  // ---------- Users (admin only) ----------
+  const Users = {
+    // List users (admin only) - can filter by role
+    async list({ role = "", active = true, limit = 100, offset = 0 } = {}) {
+      try {
+        const params = new URLSearchParams();
+        if (role) params.set("role", role);
+        if (active !== null) params.set("active", String(active));
+        params.set("limit", String(limit));
+        params.set("offset", String(offset));
+
+        const data = await fetchJSON(`/users?${params.toString()}`, {
+          method: "GET",
+        });
+        if (data && Array.isArray(data.items)) {
+          return {
+            items: data.items,
+            total: typeof data.total === "number" ? data.total : data.items.length,
+          };
+        }
+        return { items: [], total: 0 };
+      } catch (e) {
+        console.error("[Users.list] Failed:", e);
+        throw e;
+      }
+    },
+    // Get agents and admins (for assignment dropdown)
+    async getAgents() {
+      const [agents, admins] = await Promise.all([
+        this.list({ role: "agent", active: true, limit: 200 }),
+        this.list({ role: "admin", active: true, limit: 200 })
+      ]);
+      return [...agents.items, ...admins.items];
+    },
+  };
+
   // expose globally
   window.API = API;
   window.Auth = Auth;
+  window.Users = Users;
 })();

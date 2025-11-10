@@ -280,7 +280,18 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		utils.JSON(w, http.StatusOK, t)
+		
+		// Fetch the updated ticket with assignee name/email populated via JOIN
+		updated, err := h.tickets.Get(r.Context(), t.ID)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if updated == nil {
+			utils.Error(w, http.StatusInternalServerError, "ticket not found after update")
+			return
+		}
+		utils.JSON(w, http.StatusOK, updated)
 	}
 }
 
