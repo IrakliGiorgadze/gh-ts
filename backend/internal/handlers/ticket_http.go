@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
-	"os"
 	"strconv"
 	"strings"
 
@@ -16,28 +15,50 @@ import (
 	"gh-ts/internal/utils"
 )
 
-// TicketHTTP wires HTTP endpoints to a TicketRepository.
+// TicketHTTP wires HTTP endpoints to repositories.
 type TicketHTTP struct {
-	repo repository.TicketRepository
+	tickets repository.TicketRepository
+	users   repository.UserRepository
 }
 
-func NewTicketHTTP(r repository.TicketRepository) *TicketHTTP { return &TicketHTTP{repo: r} }
+func NewTicketHTTP(tickets repository.TicketRepository, users repository.UserRepository) *TicketHTTP {
+	return &TicketHTTP{tickets: tickets, users: users}
+}
 
 // -----------------------------------------------------------------------------
-// GET /api/tickets?q=&status=&priority=&category=&assignee=&limit=&offset=&sort=&order=
-// Uses advanced repo when available, falls back to legacy List() otherwise.
-// Returns: { items: [...], total: N }
+// Optional repo capability for DB-based default admin lookup (kept for future).
+// -----------------------------------------------------------------------------
+type defaultAdminFinder interface {
+	FirstActiveAdminID(ctx context.Context) (string, error)
+}
+
+func (h *TicketHTTP) getDefaultAdminID(ctx context.Context) (string, error) {
+	// Prefer the users repo (which we have)
+	if h.users != nil {
+		if id, err := h.users.FirstActiveAdminID(ctx); err == nil && strings.TrimSpace(id) != "" {
+			return id, nil
+		}
+	}
+	// As a fallback, if ticket repo happened to implement it (unlikely)
+	if af, ok := any(h.tickets).(defaultAdminFinder); ok {
+		if id, err := af.FirstActiveAdminID(ctx); err == nil && strings.TrimSpace(id) != "" {
+			return id, nil
+		}
+	}
+	return "", context.DeadlineExceeded // sentinel "not found"
+}
+
+// -----------------------------------------------------------------------------
+// GET /api/tickets ... (unchanged list logic, just swapped h.repo -> h.tickets)
 // -----------------------------------------------------------------------------
 func (h *TicketHTTP) List() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		qv := r.URL.Query()
 		q := strings.TrimSpace(qv.Get("q"))
-
 		status := strings.TrimSpace(qv.Get("status"))
 		priority := strings.TrimSpace(qv.Get("priority"))
 		category := strings.TrimSpace(qv.Get("category"))
 		assignee := strings.TrimSpace(qv.Get("assignee"))
-
 		limit := utils.QueryInt(qv, "limit", 10)
 		offset := utils.QueryInt(qv, "offset", 0)
 		sort := qv.Get("sort")
@@ -46,12 +67,11 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
 		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
 
-		// Prefer advanced methods if the concrete repo provides them.
 		type adv interface {
 			ListAdv(ctx context.Context, q, status, priority, category, assignee, sort, order string, limit, offset int) ([]models.Ticket, error)
 			CountAdv(ctx context.Context, q, status, priority, category, assignee string) (int, error)
 		}
-		if ar, ok := h.repo.(adv); ok {
+		if ar, ok := h.tickets.(adv); ok {
 			items, err := ar.ListAdv(r.Context(), q, status, priority, category, assignee, sort, order, limit, offset)
 			if err != nil {
 				utils.Error(w, http.StatusInternalServerError, err.Error())
@@ -62,8 +82,6 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 				utils.Error(w, http.StatusInternalServerError, err.Error())
 				return
 			}
-
-			// Enforce end-user visibility (only their own tickets)
 			if role == "end_user" && uid != "" {
 				filtered := make([]models.Ticket, 0, len(items))
 				for _, t := range items {
@@ -74,23 +92,17 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 				items = filtered
 				total = len(filtered)
 			}
-
 			w.Header().Set("X-Total-Count", strconv.Itoa(total))
-			utils.JSON(w, http.StatusOK, map[string]any{
-				"items": items,
-				"total": total,
-			})
+			utils.JSON(w, http.StatusOK, map[string]any{"items": items, "total": total})
 			return
 		}
 
-		// Fallback to legacy List (q + status + paging only)
-		items, err := h.repo.List(r.Context(), q, status, limit, offset)
+		// legacy
+		items, err := h.tickets.List(r.Context(), q, status, limit, offset)
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		// Enforce end-user visibility for legacy path
 		if role == "end_user" && uid != "" {
 			filtered := make([]models.Ticket, 0, len(items))
 			for _, t := range items {
@@ -100,12 +112,8 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 			}
 			items = filtered
 		}
-
 		w.Header().Set("X-Total-Count", strconv.Itoa(len(items)))
-		utils.JSON(w, http.StatusOK, map[string]any{
-			"items": items,
-			"total": len(items),
-		})
+		utils.JSON(w, http.StatusOK, map[string]any{"items": items, "total": len(items)})
 	}
 }
 
@@ -119,7 +127,7 @@ func (h *TicketHTTP) Get() http.HandlerFunc {
 			utils.Error(w, http.StatusBadRequest, "missing id")
 			return
 		}
-		t, err := h.repo.Get(r.Context(), id)
+		t, err := h.tickets.Get(r.Context(), id)
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
@@ -128,21 +136,20 @@ func (h *TicketHTTP) Get() http.HandlerFunc {
 			utils.Error(w, http.StatusNotFound, "not found")
 			return
 		}
-
 		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
 		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
 		if role == "end_user" && uid != "" && t.CreatedBy != uid {
 			utils.Error(w, http.StatusForbidden, "forbidden")
 			return
 		}
-
 		utils.JSON(w, http.StatusOK, t)
 	}
 }
 
 // -----------------------------------------------------------------------------
 // POST /api/tickets
-// Body: { title, description, category, priority, department, assignee? }
+// If creator is end_user → ALWAYS auto-assign to first active admin from DB.
+// (If none available → 500 with a clear message.)
 // -----------------------------------------------------------------------------
 func (h *TicketHTTP) Create() http.HandlerFunc {
 	type inDTO struct {
@@ -165,31 +172,37 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 			return
 		}
 
+		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
+		if uid == "" {
+			utils.Error(w, http.StatusUnauthorized, "not authenticated")
+			return
+		}
+		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
+
+		assignee := strings.TrimSpace(in.Assignee)
+
+		// Hard rule: end users' tickets must be assigned to an admin
+		if role == "end_user" {
+			adminID, err := h.getDefaultAdminID(r.Context())
+			if err != nil || strings.TrimSpace(adminID) == "" {
+				utils.Error(w, http.StatusInternalServerError, "no active admin available for assignment")
+				return
+			}
+			assignee = adminID
+		}
+
 		t := &models.Ticket{
 			Title:       in.Title,
 			Description: strings.TrimSpace(in.Description),
 			Category:    strings.TrimSpace(in.Category),
 			Priority:    strings.TrimSpace(in.Priority),
 			Status:      "New",
-			Assignee:    strings.TrimSpace(in.Assignee),
+			Assignee:    assignee,
 			Department:  strings.TrimSpace(in.Department),
+			CreatedBy:   uid,
 		}
 
-		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
-		if uid == "" {
-			utils.Error(w, http.StatusUnauthorized, "not authenticated")
-			return
-		}
-		t.CreatedBy = uid
-
-		// optional default assignee via env
-		if strings.TrimSpace(t.Assignee) == "" {
-			if def := os.Getenv("DEFAULT_ADMIN_ID"); strings.TrimSpace(def) != "" {
-				t.Assignee = def
-			}
-		}
-
-		if err := h.repo.Create(r.Context(), t); err != nil {
+		if err := h.tickets.Create(r.Context(), t); err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -199,7 +212,6 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 
 // -----------------------------------------------------------------------------
 // PATCH /api/tickets/{id}
-// Body: any of { title, description, category, priority, status, assignee, department }
 // -----------------------------------------------------------------------------
 func (h *TicketHTTP) Update() http.HandlerFunc {
 	type inDTO struct {
@@ -215,7 +227,6 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
 		switch role {
 		case "admin", "agent", "supervisor":
-			// ok
 		default:
 			utils.Error(w, http.StatusForbidden, "forbidden")
 			return
@@ -233,8 +244,7 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 			return
 		}
 
-		// load existing
-		t, err := h.repo.Get(r.Context(), id)
+		t, err := h.tickets.Get(r.Context(), id)
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
@@ -244,7 +254,6 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 			return
 		}
 
-		// apply partial updates
 		if in.Title != nil {
 			t.Title = strings.TrimSpace(*in.Title)
 		}
@@ -267,7 +276,7 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 			t.Department = strings.TrimSpace(*in.Department)
 		}
 
-		if err := h.repo.Update(r.Context(), t); err != nil {
+		if err := h.tickets.Update(r.Context(), t); err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -277,8 +286,6 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 
 // -----------------------------------------------------------------------------
 // POST /api/tickets/{id}/comments
-// Body: { text }
-// Returns: the updated ticket (so FE can re-render comments easily)
 // -----------------------------------------------------------------------------
 func (h *TicketHTTP) AddComment() http.HandlerFunc {
 	type inDTO struct {
@@ -301,13 +308,11 @@ func (h *TicketHTTP) AddComment() http.HandlerFunc {
 			return
 		}
 
-		if _, err := h.repo.AddComment(r.Context(), id, in.Text); err != nil {
+		if _, err := h.tickets.AddComment(r.Context(), id, in.Text); err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-
-		// Return the refreshed ticket with comments (matches your FE expectation)
-		t, err := h.repo.Get(r.Context(), id)
+		t, err := h.tickets.Get(r.Context(), id)
 		if err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return

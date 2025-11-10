@@ -42,7 +42,8 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 	authH := handlers.NewAuthHTTP(authSvc, userRepo)
 
 	ticketRepo := postgres.NewTicketRepo(db)
-	ticketH := handlers.NewTicketHTTP(ticketRepo)
+	// Pass userRepo into TicketHTTP for auto-assignment logic
+	ticketH := handlers.NewTicketHTTP(ticketRepo, userRepo)
 
 	// Reports (uses ticketRepo counters when available, else falls back)
 	reportsH := handlers.NewReportsHTTP(ticketRepo)
@@ -82,8 +83,7 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 		r.With(middleware.RequireRoles("admin")).Patch("/{id}/role", userH.UpdateRole())
 		r.With(middleware.RequireRoles("admin")).Patch("/{id}/active", userH.SetActive())
 
-		// Self-service (any authenticated user can update own basic info/password;
-		// your handler should enforce "id == me" in repo/service if needed)
+		// Self-service (any authenticated user can update own basic info/password)
 		r.With(middleware.RequireAuth).Patch("/{id}/basic", userH.UpdateBasic())
 		r.With(middleware.RequireAuth).Patch("/{id}/password", userH.UpdatePassword())
 	})

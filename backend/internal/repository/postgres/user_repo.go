@@ -174,5 +174,24 @@ func (r *UserRepo) UpdatePasswordHash(ctx context.Context, id, passwordHash stri
 	return err
 }
 
-// small helper
-//func itoa(i int) string { return fmt.Sprint(i) }
+// NEW: the first active admin id (or ErrNoActiveAdmin if none). Deterministic by created_at.
+func (r *UserRepo) FirstActiveAdminID(ctx context.Context) (string, error) {
+	var id string
+	err := r.db.QueryRow(ctx, `
+		SELECT id
+		FROM users
+		WHERE role = 'admin' AND active = TRUE
+		ORDER BY created_at ASC
+		LIMIT 1
+	`).Scan(&id)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return "", repository.ErrNoActiveAdmin
+		}
+		return "", err
+	}
+	return id, nil
+}
+
+// note: itoa helper comes from ticket_repo.go in same package
+// func itoa(i int) string { return strconv.Itoa(i) }
