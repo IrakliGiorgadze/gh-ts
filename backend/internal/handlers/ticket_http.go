@@ -1,13 +1,16 @@
 package handlers
 
 import (
+	"context"
 	"encoding/json"
 	"net/http"
+	"os"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
 
+	"gh-ts/internal/middleware"
 	"gh-ts/internal/models"
 	"gh-ts/internal/repository"
 	"gh-ts/internal/utils"
@@ -40,10 +43,13 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 		sort := qv.Get("sort")
 		order := qv.Get("order")
 
+		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
+		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
+
 		// Prefer advanced methods if the concrete repo provides them.
 		type adv interface {
-			ListAdv(ctx_ interface{ Done() <-chan struct{} }, q, status, priority, category, assignee, sort, order string, limit, offset int) ([]models.Ticket, error)
-			CountAdv(ctx_ interface{ Done() <-chan struct{} }, q, status, priority, category, assignee string) (int, error)
+			ListAdv(ctx context.Context, q, status, priority, category, assignee, sort, order string, limit, offset int) ([]models.Ticket, error)
+			CountAdv(ctx context.Context, q, status, priority, category, assignee string) (int, error)
 		}
 		if ar, ok := h.repo.(adv); ok {
 			items, err := ar.ListAdv(r.Context(), q, status, priority, category, assignee, sort, order, limit, offset)
@@ -56,6 +62,19 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 				utils.Error(w, http.StatusInternalServerError, err.Error())
 				return
 			}
+
+			// Enforce end-user visibility (only their own tickets)
+			if role == "end_user" && uid != "" {
+				filtered := make([]models.Ticket, 0, len(items))
+				for _, t := range items {
+					if t.CreatedBy == uid {
+						filtered = append(filtered, t)
+					}
+				}
+				items = filtered
+				total = len(filtered)
+			}
+
 			w.Header().Set("X-Total-Count", strconv.Itoa(total))
 			utils.JSON(w, http.StatusOK, map[string]any{
 				"items": items,
@@ -70,6 +89,18 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
+		// Enforce end-user visibility for legacy path
+		if role == "end_user" && uid != "" {
+			filtered := make([]models.Ticket, 0, len(items))
+			for _, t := range items {
+				if t.CreatedBy == uid {
+					filtered = append(filtered, t)
+				}
+			}
+			items = filtered
+		}
+
 		w.Header().Set("X-Total-Count", strconv.Itoa(len(items)))
 		utils.JSON(w, http.StatusOK, map[string]any{
 			"items": items,
@@ -97,6 +128,14 @@ func (h *TicketHTTP) Get() http.HandlerFunc {
 			utils.Error(w, http.StatusNotFound, "not found")
 			return
 		}
+
+		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
+		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
+		if role == "end_user" && uid != "" && t.CreatedBy != uid {
+			utils.Error(w, http.StatusForbidden, "forbidden")
+			return
+		}
+
 		utils.JSON(w, http.StatusOK, t)
 	}
 }
@@ -136,6 +175,20 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 			Department:  strings.TrimSpace(in.Department),
 		}
 
+		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
+		if uid == "" {
+			utils.Error(w, http.StatusUnauthorized, "not authenticated")
+			return
+		}
+		t.CreatedBy = uid
+
+		// optional default assignee via env
+		if strings.TrimSpace(t.Assignee) == "" {
+			if def := os.Getenv("DEFAULT_ADMIN_ID"); strings.TrimSpace(def) != "" {
+				t.Assignee = def
+			}
+		}
+
 		if err := h.repo.Create(r.Context(), t); err != nil {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
@@ -159,6 +212,15 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 		Department  *string `json:"department"`
 	}
 	return func(w http.ResponseWriter, r *http.Request) {
+		role, _ := utils.GetString(r.Context(), middleware.CtxRole)
+		switch role {
+		case "admin", "agent", "supervisor":
+			// ok
+		default:
+			utils.Error(w, http.StatusForbidden, "forbidden")
+			return
+		}
+
 		id := chi.URLParam(r, "id")
 		if id == "" {
 			utils.Error(w, http.StatusBadRequest, "missing id")
@@ -206,9 +268,6 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 		}
 
 		if err := h.repo.Update(r.Context(), t); err != nil {
-			if err == nil {
-				// noop
-			}
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
@@ -246,6 +305,7 @@ func (h *TicketHTTP) AddComment() http.HandlerFunc {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
+
 		// Return the refreshed ticket with comments (matches your FE expectation)
 		t, err := h.repo.Get(r.Context(), id)
 		if err != nil {

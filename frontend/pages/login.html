@@ -9,9 +9,14 @@
   <body>
     <div id="navbar"></div>
     <div class="container">
-      <div class="card" style="max-width: 420px; margin: 60px auto">
-        <h2>Sign in</h2>
-        <p class="muted">Use demo credentials to continue.</p>
+      <div
+        class="card"
+        style="max-width: 420px; margin: 60px auto; padding: 24px"
+      >
+        <h2 style="margin-bottom: 4px">Sign in</h2>
+        <p class="muted" style="margin-bottom: 16px">
+          Use demo credentials to continue.
+        </p>
 
         <form
           id="login-form"
@@ -41,6 +46,14 @@
           style="margin-top: 10px; display: none"
         >
           Invalid credentials
+        </div>
+
+        <!-- Register link section -->
+        <div style="text-align: center; margin-top: 16px">
+          <span class="muted">Don't have an account?</span>
+          <a href="./register.html" class="btn ghost" style="margin-left: 6px">
+            Register
+          </a>
         </div>
       </div>
     </div>
@@ -81,16 +94,12 @@
               body: JSON.stringify({ email, password }),
             });
 
-            // Try to parse JSON body, even on error
             let data = null;
             try {
               data = await res.json();
             } catch (_) {}
 
             if (res.ok) {
-              // Optional: store something client-side if you want
-              // localStorage.setItem('demo_email', email);
-              // Redirect after successful login
               window.location.href = "../index.html";
             } else {
               showError(
@@ -104,10 +113,7 @@
           }
         }
 
-        // Click on the button triggers login
         btn.addEventListener("click", doLogin);
-
-        // Pressing Enter in the form should also work
         form.addEventListener("submit", doLogin);
       })();
     </script>

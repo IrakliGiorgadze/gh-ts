@@ -28,7 +28,7 @@
 
           <p id="t-desc" style="margin-top: 12px"></p>
 
-          <div class="row" style="gap: 8px; margin-top: 12px">
+          <div class="row" id="status-row" style="gap: 8px; margin-top: 12px">
             <label>Status</label>
             <select id="sel-status" class="input" style="max-width: 240px">
               <option>New</option>
@@ -80,6 +80,27 @@
         alert("Missing ticket id");
         location.href = "./tickets.html";
       }
+
+      // Hide status controls for non-staff users
+      (async () => {
+        try {
+          const me = await Auth.me();
+          const isStaff =
+            me && ["admin", "agent", "supervisor"].includes(me.role);
+          if (!isStaff) {
+            const row =
+              document.getElementById("sel-status")?.closest(".row") ||
+              document.getElementById("status-row");
+            if (row) row.style.display = "none";
+          }
+        } catch (_) {
+          // if /auth/me fails, treat as non-staff
+          const row =
+            document.getElementById("sel-status")?.closest(".row") ||
+            document.getElementById("status-row");
+          if (row) row.style.display = "none";
+        }
+      })();
 
       let ticket;
 
@@ -183,6 +204,20 @@
       function showBadge(el) {
         el.style.display = "inline-block";
         setTimeout(() => (el.style.display = "none"), 1200);
+      }
+
+      function escapeHtml(s) {
+        return String(s).replace(
+          /[&<>"']/g,
+          (m) =>
+            ({
+              "&": "&amp;",
+              "<": "&lt;",
+              ">": "&gt;",
+              '"': "&quot;",
+              "'": "&#039;",
+            }[m])
+        );
       }
     </script>
   </body>

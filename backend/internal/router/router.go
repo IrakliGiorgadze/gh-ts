@@ -47,29 +47,45 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 	// Reports (uses ticketRepo counters when available, else falls back)
 	reportsH := handlers.NewReportsHTTP(ticketRepo)
 
-	// Tickets
+	// Tickets (RBAC-enforced)
 	r.Route("/api/tickets", func(r chi.Router) {
-		// If you want to enforce auth for writes:
-		// r.With(middleware.RequireAuth).Post("/", ticketH.Create())
-		// r.Route("/{id}", func(r chi.Router) {
-		//   r.Get("/", ticketH.Get())
-		//   r.With(middleware.RequireAuth).Patch("/", ticketH.Update())
-		//   r.With(middleware.RequireAuth).Post("/comments", ticketH.AddComment())
-		//   return
-		// })
-
+		// List is open (optionally protect with RequireAuth)
 		r.Get("/", ticketH.List())
-		r.Post("/", ticketH.Create())
+
+		// Create requires authentication
+		r.With(middleware.RequireAuth).Post("/", ticketH.Create())
+
 		r.Route("/{id}", func(r chi.Router) {
+			// Get single ticket
 			r.Get("/", ticketH.Get())
-			r.Patch("/", ticketH.Update())
-			r.Post("/comments", ticketH.AddComment())
+
+			// Update restricted to admin/agent/supervisor
+			r.With(middleware.RequireRoles("admin", "agent", "supervisor")).
+				Patch("/", ticketH.Update())
+
+			// Comments allowed for authenticated users
+			r.With(middleware.RequireAuth).
+				Post("/comments", ticketH.AddComment())
 		})
 	})
 
 	// Reports
 	r.Route("/api/reports", func(r chi.Router) {
 		r.Get("/summary", reportsH.Summary())
+	})
+
+	// Users (admin-only listing & admin ops; self-service updates require auth)
+	userH := handlers.NewUserHTTP(userRepo)
+	r.Route("/api/users", func(r chi.Router) {
+		// Admin-only endpoints
+		r.With(middleware.RequireRoles("admin")).Get("/", userH.List())
+		r.With(middleware.RequireRoles("admin")).Patch("/{id}/role", userH.UpdateRole())
+		r.With(middleware.RequireRoles("admin")).Patch("/{id}/active", userH.SetActive())
+
+		// Self-service (any authenticated user can update own basic info/password;
+		// your handler should enforce "id == me" in repo/service if needed)
+		r.With(middleware.RequireAuth).Patch("/{id}/basic", userH.UpdateBasic())
+		r.With(middleware.RequireAuth).Patch("/{id}/password", userH.UpdatePassword())
 	})
 
 	// Auth

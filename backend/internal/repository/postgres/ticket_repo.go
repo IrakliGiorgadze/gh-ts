@@ -44,7 +44,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 	args = append(args, limit, offset)
 
 	sql := `
-		SELECT id, title, description, category, priority, status, assignee, department, created_at, updated_at
+		SELECT id, title, description, category, priority, status, assignee, department, created_by, created_at, updated_at
 		FROM tickets
 		WHERE ` + strings.Join(conds, " AND ") + `
 		ORDER BY updated_at DESC
@@ -61,7 +61,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 		var t models.Ticket
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
-			&t.Status, &t.Assignee, &t.Department, &t.CreatedAt, &t.UpdatedAt,
+			&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -102,7 +102,7 @@ func (r *TicketRepo) ListAdv(
 	sortOrd := sanitizeOrder(order, "desc")
 
 	sql := fmt.Sprintf(`
-		SELECT id, title, description, category, priority, status, assignee, department, created_at, updated_at
+		SELECT id, title, description, category, priority, status, assignee, department, created_by, created_at, updated_at
 		FROM tickets
 		%s
 		ORDER BY %s %s
@@ -122,7 +122,7 @@ func (r *TicketRepo) ListAdv(
 		var t models.Ticket
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
-			&t.Status, &t.Assignee, &t.Department, &t.CreatedAt, &t.UpdatedAt,
+			&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 		); err != nil {
 			return nil, err
 		}
@@ -149,12 +149,12 @@ func (r *TicketRepo) CountAdv(ctx context.Context, q, status, priority, category
 func (r *TicketRepo) Get(ctx context.Context, id string) (*models.Ticket, error) {
 	var t models.Ticket
 	err := r.db.QueryRow(ctx, `
-		SELECT id, title, description, category, priority, status, assignee, department, created_at, updated_at
+		SELECT id, title, description, category, priority, status, assignee, department, created_by, created_at, updated_at
 		FROM tickets
 		WHERE id = $1
 	`, id).Scan(
 		&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
-		&t.Status, &t.Assignee, &t.Department, &t.CreatedAt, &t.UpdatedAt,
+		&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -187,11 +187,11 @@ func (r *TicketRepo) Get(ctx context.Context, id string) (*models.Ticket, error)
 func (r *TicketRepo) Create(ctx context.Context, t *models.Ticket) error {
 	now := time.Now()
 	err := r.db.QueryRow(ctx, `
-		INSERT INTO tickets (title, description, category, priority, status, assignee, department, created_at, updated_at)
-		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9)
+		INSERT INTO tickets (title, description, category, priority, status, assignee, department, created_by, created_at, updated_at)
+		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		RETURNING id, created_at, updated_at
 	`,
-		t.Title, t.Description, t.Category, t.Priority, "New", t.Assignee, t.Department, now, now,
+		t.Title, t.Description, t.Category, t.Priority, "New", t.Assignee, t.Department, t.CreatedBy, now, now,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 	return err
 }

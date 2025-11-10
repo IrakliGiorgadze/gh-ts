@@ -11,6 +11,7 @@ type Ticket struct {
 	Status      string    `json:"status"`
 	Assignee    string    `json:"assignee"`
 	Department  string    `json:"department"`
+	CreatedBy   string    `json:"createdBy"`
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	Comments    []Comment `json:"comments,omitempty"`
