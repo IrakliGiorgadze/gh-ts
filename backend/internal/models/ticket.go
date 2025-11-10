@@ -15,6 +15,11 @@ type Ticket struct {
 	CreatedAt   time.Time `json:"createdAt"`
 	UpdatedAt   time.Time `json:"updatedAt"`
 	Comments    []Comment `json:"comments,omitempty"`
+
+	// --- Optional display fields ---
+	// Populated automatically when joining with users table.
+	AssigneeName  string `json:"assignee_name,omitempty"`
+	AssigneeEmail string `json:"assignee_email,omitempty"`
 }
 
 type Comment struct {

@@ -18,7 +18,7 @@ type TicketRepo struct{ db *pgxpool.Pool }
 func NewTicketRepo(db *pgxpool.Pool) *TicketRepo { return &TicketRepo{db: db} }
 
 // -----------------------------------------------------------------------------
-// Simple list (backward compatible)
+// Simple list (backward compatible) + assignee name/email join
 // -----------------------------------------------------------------------------
 func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset int) ([]models.Ticket, error) {
 	if limit <= 0 || limit > 200 {
@@ -35,19 +35,23 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 		p := "%" + q + "%"
 		args = append(args, p, p)
 		// Case-insensitive match on title or description
-		conds = append(conds, "(title ILIKE $"+itoa(len(args)-1)+" OR description ILIKE $"+itoa(len(args))+")")
+		conds = append(conds, "(t.title ILIKE $"+itoa(len(args)-1)+" OR t.description ILIKE $"+itoa(len(args))+")")
 	}
 	if status != "" {
 		args = append(args, status)
-		conds = append(conds, "status = $"+itoa(len(args)))
+		conds = append(conds, "t.status = $"+itoa(len(args)))
 	}
 	args = append(args, limit, offset)
 
 	sql := `
-		SELECT id, title, description, category, priority, status, assignee, department, created_by, created_at, updated_at
-		FROM tickets
+		SELECT
+			t.id, t.title, t.description, t.category, t.priority, t.status,
+			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
+			COALESCE(u.name, ''), COALESCE(u.email, '')
+		FROM tickets t
+		LEFT JOIN users u ON u.id = t.assignee
 		WHERE ` + strings.Join(conds, " AND ") + `
-		ORDER BY updated_at DESC
+		ORDER BY t.updated_at DESC
 		LIMIT $` + itoa(len(args)-1) + ` OFFSET $` + itoa(len(args))
 
 	rows, err := r.db.Query(ctx, sql, args...)
@@ -62,6 +66,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
 			&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&t.AssigneeName, &t.AssigneeEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -71,7 +76,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 }
 
 // -----------------------------------------------------------------------------
-// Advanced listing with filters + pagination + sort
+// Advanced listing with filters + pagination + sort + assignee name/email join
 // -----------------------------------------------------------------------------
 
 // ListAdv returns a page of tickets filtered by multiple fields and sorted.
@@ -102,10 +107,14 @@ func (r *TicketRepo) ListAdv(
 	sortOrd := sanitizeOrder(order, "desc")
 
 	sql := fmt.Sprintf(`
-		SELECT id, title, description, category, priority, status, assignee, department, created_by, created_at, updated_at
-		FROM tickets
+		SELECT
+			t.id, t.title, t.description, t.category, t.priority, t.status,
+			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
+			COALESCE(u.name, ''), COALESCE(u.email, '')
+		FROM tickets t
+		LEFT JOIN users u ON u.id = t.assignee
 		%s
-		ORDER BY %s %s
+		ORDER BY t.%s %s
 		LIMIT $%d OFFSET $%d
 	`, whereSQL, sortCol, sortOrd, len(args)+1, len(args)+2)
 
@@ -123,6 +132,7 @@ func (r *TicketRepo) ListAdv(
 		if err := rows.Scan(
 			&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
 			&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+			&t.AssigneeName, &t.AssigneeEmail,
 		); err != nil {
 			return nil, err
 		}
@@ -134,7 +144,7 @@ func (r *TicketRepo) ListAdv(
 // CountAdv returns the total number of tickets for the same filter set (for pagination).
 func (r *TicketRepo) CountAdv(ctx context.Context, q, status, priority, category, assignee string) (int, error) {
 	whereSQL, args := buildTicketWhere(q, status, priority, category, assignee)
-	sql := `SELECT COUNT(*) FROM tickets ` + whereSQL
+	sql := `SELECT COUNT(*) FROM tickets t ` + whereSQL
 
 	var n int
 	if err := r.db.QueryRow(ctx, sql, args...).Scan(&n); err != nil {
@@ -144,17 +154,22 @@ func (r *TicketRepo) CountAdv(ctx context.Context, q, status, priority, category
 }
 
 // -----------------------------------------------------------------------------
-// Single ticket + create/update + comments
+// Single ticket + create/update + comments (Get joined with assignee name/email)
 // -----------------------------------------------------------------------------
 func (r *TicketRepo) Get(ctx context.Context, id string) (*models.Ticket, error) {
 	var t models.Ticket
 	err := r.db.QueryRow(ctx, `
-		SELECT id, title, description, category, priority, status, assignee, department, created_by, created_at, updated_at
-		FROM tickets
-		WHERE id = $1
+		SELECT
+			t.id, t.title, t.description, t.category, t.priority, t.status,
+			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
+			COALESCE(u.name, ''), COALESCE(u.email, '')
+		FROM tickets t
+		LEFT JOIN users u ON u.id = t.assignee
+		WHERE t.id = $1
 	`, id).Scan(
 		&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
 		&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
+		&t.AssigneeName, &t.AssigneeEmail,
 	)
 	if err != nil {
 		if err == pgx.ErrNoRows {
@@ -267,7 +282,7 @@ func (r *TicketRepo) CountOpenByPriorities(ctx context.Context, prios []string) 
 // Helpers
 // -----------------------------------------------------------------------------
 
-// buildTicketWhere composes WHERE clause and args for advanced filters.
+// buildTicketWhere composes WHERE clause and args for advanced filters (with aliases).
 func buildTicketWhere(q, status, priority, category, assignee string) (string, []any) {
 	clauses := []string{"1=1"}
 	args := []any{}
@@ -276,25 +291,25 @@ func buildTicketWhere(q, status, priority, category, assignee string) (string, [
 	if s := strings.TrimSpace(q); s != "" {
 		p := "%" + s + "%"
 		args = append(args, p, p)
-		clauses = append(clauses, "(title ILIKE $"+itoa(len(args)-1)+" OR description ILIKE $"+itoa(len(args))+")")
+		clauses = append(clauses, "(t.title ILIKE $"+itoa(len(args)-1)+" OR t.description ILIKE $"+itoa(len(args))+")")
 	}
 
 	// exact filters
 	if s := strings.TrimSpace(status); s != "" {
 		args = append(args, s)
-		clauses = append(clauses, "status = $"+itoa(len(args)))
+		clauses = append(clauses, "t.status = $"+itoa(len(args)))
 	}
 	if p := strings.TrimSpace(priority); p != "" {
 		args = append(args, p)
-		clauses = append(clauses, "priority = $"+itoa(len(args)))
+		clauses = append(clauses, "t.priority = $"+itoa(len(args)))
 	}
 	if c := strings.TrimSpace(category); c != "" {
 		args = append(args, c)
-		clauses = append(clauses, "category = $"+itoa(len(args)))
+		clauses = append(clauses, "t.category = $"+itoa(len(args)))
 	}
 	if a := strings.TrimSpace(assignee); a != "" {
 		args = append(args, a)
-		clauses = append(clauses, "assignee = $"+itoa(len(args)))
+		clauses = append(clauses, "t.assignee = $"+itoa(len(args)))
 	}
 
 	return "WHERE " + strings.Join(clauses, " AND "), args

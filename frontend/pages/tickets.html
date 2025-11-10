@@ -136,6 +136,14 @@
             ? new Date(t.createdAt)
             : null;
           const when = updated ? updated.toLocaleString() : "";
+
+          // NEW: prefer assigneeName -> assigneeEmail -> assignee (id) -> Unassigned
+          const assigneeLabel =
+            (t.assigneeName && t.assigneeName.trim()) ||
+            (t.assigneeEmail && t.assigneeEmail.trim()) ||
+            (t.assignee && t.assignee.trim()) ||
+            "";
+
           return `
             <article class="card ticket-card" data-id="${
               t.id
@@ -160,11 +168,11 @@
                     ${escapeHtml(t.description || "")}
                   </div>
                 </div>
-                <div style="text-align:right;min-width:180px">
+                <div style="text-align:right;min-width:220px">
                   ${
-                    t.assignee
+                    assigneeLabel
                       ? `<div class="muted">Assignee: ${escapeHtml(
-                          t.assignee
+                          assigneeLabel
                         )}</div>`
                       : `<div class="muted">Unassigned</div>`
                   }
