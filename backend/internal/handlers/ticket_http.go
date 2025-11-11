@@ -189,6 +189,8 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 				return
 			}
 			assignee = adminID
+		} else if role == "admin" && assignee == "" {
+			assignee = uid
 		}
 
 		t := &models.Ticket{
@@ -280,7 +282,7 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		
+
 		// Fetch the updated ticket with assignee name/email populated via JOIN
 		updated, err := h.tickets.Get(r.Context(), t.ID)
 		if err != nil {

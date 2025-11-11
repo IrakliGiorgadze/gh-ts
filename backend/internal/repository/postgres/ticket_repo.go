@@ -46,7 +46,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 	sql := `
 		SELECT
 			t.id, t.title, t.description, t.category, t.priority, t.status,
-			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
+			COALESCE(t.assignee, ''), t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
 		LEFT JOIN users u ON u.id = NULLIF(t.assignee, '')::uuid
@@ -109,7 +109,7 @@ func (r *TicketRepo) ListAdv(
 	sql := fmt.Sprintf(`
 		SELECT
 			t.id, t.title, t.description, t.category, t.priority, t.status,
-			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
+			COALESCE(t.assignee, ''), t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
 		LEFT JOIN users u ON u.id = NULLIF(t.assignee, '')::uuid

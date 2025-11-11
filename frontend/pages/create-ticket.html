@@ -44,8 +44,8 @@
           </div>
 
           <div>
-            <label>Affected Department</label>
-            <input id="t-dept" class="input" placeholder="e.g. HR, Finance" />
+            <label data-i18n="ticket.departmentLabel">Affected Department</label>
+            <select id="t-dept" class="input"></select>
           </div>
 
           <div style="grid-column: span 2">
@@ -98,6 +98,33 @@
       const errEl = document.getElementById("msg-err");
       const selPriority = document.getElementById("t-priority");
       const selCategory = document.getElementById("t-category");
+      const selDepartment = document.getElementById("t-dept");
+
+      const DEPARTMENTS = [
+        "სათაო",
+        "ბაღდათის მრავალპროფილური სამედიცინო ცენტრი",
+        "ბორჯომის მრავალპროფილური სამედიცინო ცენტრი",
+        "გარდაბნის მრავალპროფილური სამედიცინო ცენტრი",
+        "გურჯაანის მრავალპროფილური სამედიცინო ცენტრი",
+        "დუშეთის მრავალპროფილური სამედიცინო ცენტრი",
+        "ვანის სამედიცინო ცენტრი",
+        "ზესტაფონის ამბულატორიული ცენტრი",
+        "ზესტაფონის მრავალპროფილური სამედიცინო ცენტრი",
+        "თბილისის მრავალპროფილური სამედიცინო ცენტრი",
+        "იორმუღანლოს ამბულატორია",
+        "მარნეულის მრავალპროფილური სამედიცინო ცენტრი",
+        "მარნეულის სამშობიარო და ამბულატორიული ცენტრი",
+        "მცხეთის მრავალპროფილური სამედიცინო ცენტრი",
+        "საგარეჯოს მრავალპროფილური სამედიცინო ცენტრი",
+        "სადახლოს ამბულატორია",
+        "სამტრედიის ამბულატორიული ცენტრი",
+        "სამტრედიის მრავალპროფილური სამედიცინო ცენტრი",
+        "სართიჭალის ამბულატორია",
+        "ქუთაისის ცენტრალური საავადმყოფო",
+        "ჭიათურის ამბულატორიული ცენტრი",
+        "ჭიათურის მრავალპროფილური სამედიცინო ცენტრი",
+        "ხონის ამბულატორიული ცენტრი"
+      ];
 
       // Apply localization to select options on load and when language changes
       function applyCreatePageI18n() {
@@ -110,6 +137,18 @@
               .map((p) => `<option value="${p}">${escapeHtml(I18n.mapPriority(p))}</option>`)
               .join("");
             selPriority.value = current;
+          }
+          if (selDepartment) {
+            const currentD = selDepartment.value;
+            const placeholder = (I18n && I18n.t && I18n.t("ticket.selectDepartment")) || "Select Department";
+            const options = [
+              `<option value="" disabled ${currentD ? "" : "selected"}>${escapeHtml(placeholder)}</option>`,
+              ...DEPARTMENTS.map((dept) => `<option value="${escapeHtml(dept)}">${escapeHtml(dept)}</option>`)
+            ];
+            selDepartment.innerHTML = options.join("");
+            if (currentD && DEPARTMENTS.includes(currentD)) {
+              selDepartment.value = currentD;
+            }
           }
           // Categories (simple inline map)
           const catMap = {

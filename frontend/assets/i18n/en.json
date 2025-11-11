@@ -52,6 +52,10 @@
     "update": "Update",
     "reassign": "Reassign"
   },
+  "ticket": {
+    "departmentLabel": "Affected Department",
+    "selectDepartment": "Select Department"
+  },
   "labels": {
     "unassigned": "Unassigned"
   }

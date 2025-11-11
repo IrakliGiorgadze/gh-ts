@@ -52,6 +52,10 @@
     "update": "განახლება",
     "reassign": "გადანაწილება"
   },
+  "ticket": {
+    "departmentLabel": "დაზარალებული დეპარტამენტი",
+    "selectDepartment": "აირჩიეთ დეპარტამენტი"
+  },
   "labels": {
     "unassigned": "მინიჭებული არ არის"
   }
