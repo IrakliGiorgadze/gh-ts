@@ -63,8 +63,9 @@
           t.assignee ||
           ""
         ).trim();
+        const ticketLabel = t.alias || t.id;
         tr.innerHTML = `
-          <td>${t.id}</td>
+          <td>${escapeHtml(ticketLabel)}</td>
           <td><a href="./pages/ticket-detail.html?id=${t.id}">${escapeHtml(
           t.title
         )}</a></td>

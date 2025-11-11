@@ -193,7 +193,8 @@
           if (!ticket) throw new Error("Ticket not found");
 
           byId("t-title").textContent = ticket.title || "(no title)";
-          byId("t-id").textContent = `#${ticket.id}`;
+          const label = ticket.alias || ticket.id;
+          byId("t-id").textContent = label;
           byId("t-priority").textContent = ticket.priority || "Low";
           byId("t-category").textContent = ticket.category || "General";
           byId("t-status").textContent = ticket.status || "New";

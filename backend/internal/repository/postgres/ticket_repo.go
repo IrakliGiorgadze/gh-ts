@@ -45,7 +45,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 
 	sql := `
 		SELECT
-			t.id, t.title, t.description, t.category, t.priority, t.status,
+			t.id, t.alias, t.title, t.description, t.category, t.priority, t.status,
 			COALESCE(t.assignee, ''), t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
@@ -64,7 +64,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 	for rows.Next() {
 		var t models.Ticket
 		if err := rows.Scan(
-			&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
+			&t.ID, &t.Alias, &t.Title, &t.Description, &t.Category, &t.Priority,
 			&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&t.AssigneeName, &t.AssigneeEmail,
 		); err != nil {
@@ -108,7 +108,7 @@ func (r *TicketRepo) ListAdv(
 
 	sql := fmt.Sprintf(`
 		SELECT
-			t.id, t.title, t.description, t.category, t.priority, t.status,
+			t.id, t.alias, t.title, t.description, t.category, t.priority, t.status,
 			COALESCE(t.assignee, ''), t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
@@ -130,7 +130,7 @@ func (r *TicketRepo) ListAdv(
 	for rows.Next() {
 		var t models.Ticket
 		if err := rows.Scan(
-			&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
+			&t.ID, &t.Alias, &t.Title, &t.Description, &t.Category, &t.Priority,
 			&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 			&t.AssigneeName, &t.AssigneeEmail,
 		); err != nil {
@@ -160,14 +160,14 @@ func (r *TicketRepo) Get(ctx context.Context, id string) (*models.Ticket, error)
 	var t models.Ticket
 	err := r.db.QueryRow(ctx, `
 		SELECT
-			t.id, t.title, t.description, t.category, t.priority, t.status,
+			t.id, t.alias, t.title, t.description, t.category, t.priority, t.status,
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
 		LEFT JOIN users u ON u.id = NULLIF(t.assignee, '')::uuid
 		WHERE t.id = $1
 	`, id).Scan(
-		&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
+		&t.ID, &t.Alias, &t.Title, &t.Description, &t.Category, &t.Priority,
 		&t.Status, &t.Assignee, &t.Department, &t.CreatedBy, &t.CreatedAt, &t.UpdatedAt,
 		&t.AssigneeName, &t.AssigneeEmail,
 	)
@@ -204,10 +204,10 @@ func (r *TicketRepo) Create(ctx context.Context, t *models.Ticket) error {
 	err := r.db.QueryRow(ctx, `
 		INSERT INTO tickets (title, description, category, priority, status, assignee, department, created_by, created_at, updated_at)
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
-		RETURNING id, created_at, updated_at
+		RETURNING id, alias, created_at, updated_at
 	`,
 		t.Title, t.Description, t.Category, t.Priority, "New", nullIfEmpty(t.Assignee), t.Department, t.CreatedBy, now, now,
-	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
+	).Scan(&t.ID, &t.Alias, &t.CreatedAt, &t.UpdatedAt)
 	return err
 }
 

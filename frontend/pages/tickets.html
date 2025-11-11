@@ -174,7 +174,7 @@
                       : `<div class="muted">${escapeHtml(I18n.t('labels.unassigned'))}</div>`
                   }
                   <div class="muted">${when}</div>
-                  <div class="muted">#${escapeHtml(t.id)}</div>
+                  <div class="muted">${escapeHtml(t.alias || t.id)}</div>
                 </div>
               </div>
             </article>
