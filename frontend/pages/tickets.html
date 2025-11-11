@@ -23,9 +23,9 @@
           margin-bottom: 12px;
         "
       >
-        <h2 style="margin: 0">Tickets</h2>
+        <h2 style="margin: 0" data-i18n="tickets.title">Tickets</h2>
         <a class="btn" href="./create-ticket.html" style="margin-left: auto"
-          >+ New Ticket</a
+          ><span data-i18n="tickets.newBtn">+ New Ticket</span></a
         >
       </header>
 
@@ -37,7 +37,8 @@
           <input
             id="filter-q"
             class="input"
-            placeholder="Search title or description"
+            data-i18n-attr="placeholder"
+            data-i18n-placeholder="tickets.searchPlaceholder"
             style="min-width: 260px"
           />
           <select id="filter-status" class="input">
@@ -86,6 +87,7 @@
     </main>
 
     <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/i18n.js"></script>
     <script src="/assets/js/api.js"></script>
     <script src="/assets/js/components.js"></script>
     <script src="/assets/js/guard.js"></script>
@@ -147,9 +149,9 @@
                 <div>
                   <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
                     <strong>${escapeHtml(t.title || "(no title)")}</strong>
-                    <span class="badge">${escapeHtml(t.status || "New")}</span>
+                    <span class="badge">${escapeHtml(I18n.mapStatus(t.status || "New"))}</span>
                     <span class="badge ghost">${escapeHtml(
-                      t.priority || "Low"
+                      I18n.mapPriority(t.priority || "Low")
                     )}</span>
                     ${
                       t.category
@@ -166,10 +168,10 @@
                 <div style="text-align:right;min-width:220px">
                   ${
                     assigneeLabel
-                      ? `<div class="muted">Assignee: ${escapeHtml(
+                      ? `<div class="muted">${escapeHtml(I18n.t('tickets.assignee'))}: ${escapeHtml(
                           assigneeLabel
                         )}</div>`
-                      : `<div class="muted">Unassigned</div>`
+                      : `<div class="muted">${escapeHtml(I18n.t('labels.unassigned'))}</div>`
                   }
                   <div class="muted">${when}</div>
                   <div class="muted">#${escapeHtml(t.id)}</div>

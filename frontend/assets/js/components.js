@@ -8,6 +8,13 @@
     });
     host.innerHTML = await res.text();
 
+    // Re-apply i18n after navbar is injected (ensures persistence and toggles)
+    try {
+      if (window.I18n && typeof window.I18n.setLang === "function") {
+        window.I18n.setLang(window.I18n.getLang());
+      }
+    } catch (_) {}
+
     // Populate username if logged in
     try {
       const meRes = await fetch("/api/auth/me", { credentials: "include" });

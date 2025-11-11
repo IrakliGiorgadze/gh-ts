@@ -13,10 +13,10 @@
 >
   <!-- Left: Navigation links -->
   <div class="nav-links" style="display: flex; gap: 8px; justify-self: start;">
-    <a href="/index.html" class="nav-link" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Dashboard</a>
-    <a href="/pages/tickets.html" class="nav-link" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Tickets</a>
-    <a href="/pages/create-ticket.html" class="nav-link" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Create</a>
-    <a href="/pages/reports.html" class="nav-link" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Reports</a>
+    <a href="/index.html" class="nav-link" data-i18n="nav.dashboard" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Dashboard</a>
+    <a href="/pages/tickets.html" class="nav-link" data-i18n="nav.tickets" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Tickets</a>
+    <a href="/pages/create-ticket.html" class="nav-link" data-i18n="nav.create" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Create</a>
+    <a href="/pages/reports.html" class="nav-link" data-i18n="nav.reports" style="text-decoration: none; padding: 8px 14px; border-radius: 6px; color: var(--muted); transition: all 0.2s;">Reports</a>
   </div>
 
   <!-- Center: Logo -->
@@ -24,13 +24,19 @@
     href="/index.html"
     class="logo"
     style="font-weight: 600; text-decoration: none; color: var(--text); justify-self: center; font-size: 20px;"
-    >IT Ticketing</a
+    data-i18n="nav.itTicketing"
+    >Incident Management System</a
   >
 
-  <!-- Right: User info and logout -->
+  <!-- Right: Language + User info and logout -->
   <div style="display: flex; align-items: center; gap: 12px; justify-self: end;">
+    <label for="lang-select" class="muted" data-i18n="nav.language" style="font-size: 12px;">Language</label>
+    <select id="lang-select" data-i18n-toggle style="background: transparent; color: var(--text); border: 1px solid #2a3b73; border-radius: 8px; padding: 4px 6px;">
+      <option value="en">EN</option>
+      <option value="ka">KA</option>
+    </select>
     <span id="nav-username" class="badge" style="font-weight: 500; color: var(--text);"></span>
-    <button class="btn ghost" id="btn-logout">Logout</button>
+    <button class="btn ghost" id="btn-logout" data-i18n="nav.logout">Logout</button>
   </div>
 </nav>
 

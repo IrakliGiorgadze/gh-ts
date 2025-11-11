@@ -57,46 +57,47 @@
         "
       >
         <div>
-          <h2 style="margin: 0">Reports & Insights</h2>
+          <h2 style="margin: 0" data-i18n="nav.reports">Reports</h2>
           <p class="muted" style="margin: 4px 0 0">
             Track ticket performance and workload distribution across the team.
           </p>
         </div>
-        <button id="btn-refresh" class="btn">Refresh</button>
+        <button id="btn-refresh" class="btn" data-i18n="reports.refresh">Refresh</button>
       </header>
 
       <section class="reports-grid" style="margin-bottom: 18px">
         <article class="card kpi">
-          <div class="muted">Open Tickets</div>
+          <div class="muted" data-i18n="kpi.open">Open Tickets</div>
           <div class="val" id="kpi-open">0</div>
         </article>
         <article class="card kpi">
-          <div class="muted">Resolved (7 days)</div>
+          <div class="muted" data-i18n="kpi.resolved7d">Resolved (7 days)</div>
           <div class="val" id="kpi-resolved7">0</div>
         </article>
         <article class="card kpi">
-          <div class="muted">High & Critical at Risk</div>
+          <div class="muted" data-i18n="kpi.slaRisk">SLA at Risk</div>
           <div class="val" id="kpi-risk">0</div>
         </article>
       </section>
 
       <section class="reports-grid">
         <article class="card reports-table" style="min-height: 220px">
-          <h3>By Status</h3>
+          <h3 data-i18n="reports.byStatus">By Status</h3>
           <div id="by-status" class="reports-loading">Loading…</div>
         </article>
         <article class="card reports-table" style="min-height: 220px">
-          <h3>By Priority</h3>
+          <h3 data-i18n="reports.byPriority">By Priority</h3>
           <div id="by-priority" class="reports-loading">Loading…</div>
         </article>
         <article class="card reports-table" style="min-height: 220px">
-          <h3>By Category</h3>
+          <h3 data-i18n="reports.byCategory">By Category</h3>
           <div id="by-category" class="reports-loading">Loading…</div>
         </article>
       </section>
     </main>
 
     <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/i18n.js"></script>
     <script src="/assets/js/api.js"></script>
     <script src="/assets/js/components.js"></script>
     <script src="/assets/js/guard.js"></script>
@@ -150,7 +151,7 @@
                 <th style="text-align:left;padding:6px 8px">${safeHtml(
                   title
                 )}</th>
-                <th style="text-align:right;padding:6px 8px">Count</th>
+                <th style="text-align:right;padding:6px 8px">${safeHtml(I18n.t('reports.count'))}</th>
               </tr>
             </thead>
             <tbody>${

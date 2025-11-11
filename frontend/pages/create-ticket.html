@@ -15,16 +15,16 @@
       </div>
 
       <div class="card">
-        <h2 style="margin-top: 0">New Ticket</h2>
+        <h2 style="margin-top: 0" data-i18n="tickets.newBtn">+ New Ticket</h2>
 
         <div class="grid grid-2">
           <div>
-            <label>Title</label>
+            <label data-i18n="tickets.title">Tickets</label>
             <input id="t-title" class="input" placeholder="Short summary" />
           </div>
 
           <div>
-            <label>Priority</label>
+            <label data-i18n="tickets.priority">Priority</label>
             <select id="t-priority" class="input">
               <option>Low</option>
               <option>Medium</option>
@@ -34,7 +34,7 @@
           </div>
 
           <div>
-            <label>Category</label>
+            <label data-i18n="reports.byCategory">By Category</label>
             <select id="t-category" class="input">
               <option>Software</option>
               <option>Hardware</option>
@@ -61,16 +61,16 @@
 
         <div class="row" style="margin-top: 12px; justify-content: flex-end">
           <button class="btn ghost" onclick="location.href='../index.html'">
-            Cancel
+            <span data-i18n="btn.cancel">Cancel</span>
           </button>
-          <button class="btn" id="btn-create">Create</button>
+          <button class="btn" id="btn-create"><span data-i18n="btn.create">Create</span></button>
 
           <!-- Feedback Badges -->
           <span
             id="msg-ok"
             class="badge"
             style="display: none; margin-left: 8px"
-            >Created</span
+            ><span data-i18n="btn.create">Created</span></span
           >
           <span
             id="msg-err"
@@ -84,6 +84,7 @@
 
     <!-- Scripts -->
     <script src="/assets/js/utils.js"></script>
+    <script src="/assets/js/i18n.js"></script>
     <script src="/assets/js/api.js"></script>
     <script src="/assets/js/components.js"></script>
     <script src="/assets/js/auth.js"></script>
@@ -95,6 +96,50 @@
       const btn = document.getElementById("btn-create");
       const okEl = document.getElementById("msg-ok");
       const errEl = document.getElementById("msg-err");
+      const selPriority = document.getElementById("t-priority");
+      const selCategory = document.getElementById("t-category");
+
+      // Apply localization to select options on load and when language changes
+      function applyCreatePageI18n() {
+        try {
+          // Priorities via i18n mapper
+          const prios = ["Low", "Medium", "High", "Critical"];
+          if (selPriority) {
+            const current = selPriority.value || "Low";
+            selPriority.innerHTML = prios
+              .map((p) => `<option value="${p}">${escapeHtml(I18n.mapPriority(p))}</option>`)
+              .join("");
+            selPriority.value = current;
+          }
+          // Categories (simple inline map)
+          const catMap = {
+            Software: { en: "Software", ka: "სოფტვეერი" },
+            Hardware: { en: "Hardware", ka: "ჰარდვეერი" },
+            Network: { en: "Network", ka: "ქსელი" },
+            Access: { en: "Access", ka: "წვდომა" }
+          };
+          if (selCategory) {
+            const currentC = selCategory.value || "Software";
+            const lang = (I18n && I18n.getLang && I18n.getLang()) || "en";
+            const cats = Object.keys(catMap);
+            selCategory.innerHTML = cats
+              .map((c) => `<option value="${c}">${escapeHtml(catMap[c][lang] || c)}</option>`)
+              .join("");
+            selCategory.value = currentC;
+          }
+          // Re-apply data-i18n text in this card (in case navbar injection reset timing)
+          if (window.I18n && typeof window.I18n.setLang === "function") {
+            // setLang(getLang()) is idempotent and re-applies translations
+            I18n.setLang(I18n.getLang());
+          }
+        } catch (e) {
+          console.warn("[i18n] create-page apply failed:", e);
+        }
+      }
+      document.addEventListener("DOMContentLoaded", applyCreatePageI18n);
+      if (window.I18n && typeof I18n.onChange === "function") {
+        I18n.onChange(applyCreatePageI18n);
+      }
 
       function show(el) {
         el.style.display = "inline-block";

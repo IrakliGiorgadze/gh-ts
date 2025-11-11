@@ -1,0 +1,60 @@
+{
+  "nav": {
+    "itTicketing": "Incident Management System",
+    "dashboard": "Dashboard",
+    "tickets": "Tickets",
+    "create": "Create",
+    "reports": "Reports",
+    "logout": "Logout",
+    "login": "Login",
+    "language": "Language"
+  },
+  "auth": {
+    "email": "Email",
+    "password": "Password",
+    "login": "Login",
+    "register": "Register",
+    "invalidCreds": "Invalid email or password",
+    "logoutSuccess": "Logged out"
+  },
+  "kpi": {
+    "open": "Open Tickets",
+    "slaRisk": "SLA at Risk",
+    "resolved7d": "Resolved (7 days)"
+  },
+  "tickets": {
+    "title": "Tickets",
+    "newBtn": "+ New Ticket",
+    "searchPlaceholder": "Search title or description",
+    "status": "Status",
+    "priority": "Priority",
+    "assignee": "Assignee",
+    "updated": "Updated",
+    "noData": "No tickets found. Try adjusting filters or create a new ticket."
+  },
+  "priority": {
+    "low": "Low",
+    "medium": "Medium",
+    "high": "High",
+    "critical": "Critical"
+  },
+  "reports": {
+    "byStatus": "By Status",
+    "byPriority": "By Priority",
+    "byCategory": "By Category",
+    "refresh": "Refresh",
+    "count": "Count"
+  },
+  "btn": {
+    "save": "Save",
+    "cancel": "Cancel",
+    "create": "Create",
+    "update": "Update",
+    "reassign": "Reassign"
+  },
+  "labels": {
+    "unassigned": "Unassigned"
+  }
+}
+
+
