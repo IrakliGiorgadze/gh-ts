@@ -4,7 +4,6 @@
 */
 (() => {
   const BASE = "/api"; // Nginx proxy in frontend/nginx.conf
-  const DEMO_NS = "it_demo_v1"; // offline/localStorage namespace
 
   // ---------- Utilities ----------
   const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
@@ -90,88 +89,6 @@
         throw e;
       }
     }
-  }
-
-  // ---------- Offline fallback (localStorage) ----------
-  function _dbLoad() {
-    const raw = localStorage.getItem(DEMO_NS);
-    if (raw) return JSON.parse(raw);
-    const now = Date.now();
-    const data = {
-      users: [
-        {
-          id: "u1",
-          email: "admin@example.com",
-          name: "Admin",
-          role: "admin",
-          password: "admin",
-        },
-      ],
-      tickets: [
-        {
-          id: "T-1001",
-          title: "VPN not connecting",
-          description: "Fails on step 2",
-          category: "Network",
-          priority: "High",
-          department: "Finance",
-          status: "Open",
-          assignee: "Admin",
-          updatedAt: now - 3600_000,
-          createdAt: now - 7200_000,
-          comments: [{ text: "Checking logs", createdAt: now - 3500_000 }],
-        },
-        {
-          id: "T-1002",
-          title: "Email quota exceeded",
-          description: "Cannot send",
-          category: "Software",
-          priority: "Medium",
-          department: "Sales",
-          status: "Pending",
-          assignee: "",
-          updatedAt: now - 1800_000,
-          createdAt: now - 5400_000,
-          comments: [],
-        },
-        {
-          id: "T-1003",
-          title: "Laptop fan noise",
-          description: "Very loud",
-          category: "Hardware",
-          priority: "Low",
-          department: "HR",
-          status: "New",
-          assignee: "",
-          updatedAt: now - 600_000,
-          createdAt: now - 500_000,
-          comments: [],
-        },
-      ],
-      nextId: 1004,
-    };
-    localStorage.setItem(DEMO_NS, JSON.stringify(data));
-    return data;
-  }
-  const _dbSave = (d) => localStorage.setItem(DEMO_NS, JSON.stringify(d));
-
-  function _filterList(
-    list,
-    { q = "", status = "", priority = "", category = "" } = {}
-  ) {
-    let arr = list
-      .slice()
-      .sort((a, b) => (b.updatedAt || 0) - (a.updatedAt || 0));
-    if (q) {
-      const needle = q.toLowerCase();
-      arr = arr.filter((t) =>
-        (t.title + " " + t.description).toLowerCase().includes(needle)
-      );
-    }
-    if (status) arr = arr.filter((t) => t.status === status);
-    if (priority) arr = arr.filter((t) => t.priority === priority);
-    if (category) arr = arr.filter((t) => t.category === category);
-    return arr;
   }
 
   // ---------- Public API ----------

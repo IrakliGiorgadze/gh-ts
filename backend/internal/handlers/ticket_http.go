@@ -3,11 +3,13 @@ package handlers
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"net/http"
 	"strconv"
 	"strings"
 
 	"github.com/go-chi/chi/v5"
+	"github.com/google/uuid"
 
 	"gh-ts/internal/middleware"
 	"gh-ts/internal/models"
@@ -20,6 +22,35 @@ type TicketHTTP struct {
 	tickets repository.TicketRepository
 	users   repository.UserRepository
 }
+
+var (
+	allowedTicketStatuses = map[string]struct{}{
+		"New":         {},
+		"Open":        {},
+		"In Progress": {},
+		"Pending":     {},
+		"Resolved":    {},
+		"Closed":      {},
+	}
+	allowedTicketPriorities = map[string]struct{}{
+		"Low":      {},
+		"Medium":   {},
+		"High":     {},
+		"Critical": {},
+	}
+	allowedTicketCategories = map[string]struct{}{
+		"Software": {},
+		"Hardware": {},
+		"Network":  {},
+		"Access":   {},
+		"General":  {},
+	}
+	allowedAssigneeRoles = map[string]struct{}{
+		"admin":      {},
+		"agent":      {},
+		"supervisor": {},
+	}
+)
 
 func NewTicketHTTP(tickets repository.TicketRepository, users repository.UserRepository) *TicketHTTP {
 	return &TicketHTTP{tickets: tickets, users: users}
@@ -193,11 +224,33 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 			assignee = uid
 		}
 
+		priority := strings.TrimSpace(in.Priority)
+		if priority == "" {
+			priority = "Low"
+		}
+		if _, ok := allowedTicketPriorities[priority]; !ok {
+			utils.Error(w, http.StatusBadRequest, "invalid priority")
+			return
+		}
+
+		category := strings.TrimSpace(in.Category)
+		if category != "" {
+			if _, ok := allowedTicketCategories[category]; !ok {
+				utils.Error(w, http.StatusBadRequest, "invalid category")
+				return
+			}
+		}
+
+		if err := h.validateAssignee(r.Context(), assignee); err != nil {
+			utils.Error(w, http.StatusBadRequest, err.Error())
+			return
+		}
+
 		t := &models.Ticket{
 			Title:       in.Title,
 			Description: strings.TrimSpace(in.Description),
-			Category:    strings.TrimSpace(in.Category),
-			Priority:    strings.TrimSpace(in.Priority),
+			Category:    category,
+			Priority:    priority,
 			Status:      "New",
 			Assignee:    assignee,
 			Department:  strings.TrimSpace(in.Department),
@@ -208,7 +261,17 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 			utils.Error(w, http.StatusInternalServerError, err.Error())
 			return
 		}
-		utils.JSON(w, http.StatusCreated, t)
+
+		created, err := h.tickets.Get(r.Context(), t.ID)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+		if created == nil {
+			utils.Error(w, http.StatusInternalServerError, "ticket not found after creation")
+			return
+		}
+		utils.JSON(w, http.StatusCreated, created)
 	}
 }
 
@@ -263,16 +326,38 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 			t.Description = strings.TrimSpace(*in.Description)
 		}
 		if in.Category != nil {
-			t.Category = strings.TrimSpace(*in.Category)
+			category := strings.TrimSpace(*in.Category)
+			if category != "" {
+				if _, ok := allowedTicketCategories[category]; !ok {
+					utils.Error(w, http.StatusBadRequest, "invalid category")
+					return
+				}
+			}
+			t.Category = category
 		}
 		if in.Priority != nil {
-			t.Priority = strings.TrimSpace(*in.Priority)
+			priority := strings.TrimSpace(*in.Priority)
+			if _, ok := allowedTicketPriorities[priority]; !ok {
+				utils.Error(w, http.StatusBadRequest, "invalid priority")
+				return
+			}
+			t.Priority = priority
 		}
 		if in.Status != nil {
-			t.Status = strings.TrimSpace(*in.Status)
+			status := strings.TrimSpace(*in.Status)
+			if _, ok := allowedTicketStatuses[status]; !ok {
+				utils.Error(w, http.StatusBadRequest, "invalid status")
+				return
+			}
+			t.Status = status
 		}
 		if in.Assignee != nil {
-			t.Assignee = strings.TrimSpace(*in.Assignee)
+			assignee := strings.TrimSpace(*in.Assignee)
+			if err := h.validateAssignee(r.Context(), assignee); err != nil {
+				utils.Error(w, http.StatusBadRequest, err.Error())
+				return
+			}
+			t.Assignee = assignee
 		}
 		if in.Department != nil {
 			t.Department = strings.TrimSpace(*in.Department)
@@ -336,4 +421,30 @@ func (h *TicketHTTP) AddComment() http.HandlerFunc {
 		}
 		utils.JSON(w, http.StatusOK, t)
 	}
+}
+
+func (h *TicketHTTP) validateAssignee(ctx context.Context, assignee string) error {
+	if strings.TrimSpace(assignee) == "" {
+		return nil
+	}
+
+	if _, err := uuid.Parse(strings.TrimSpace(assignee)); err != nil {
+		return errors.New("invalid assignee id")
+	}
+
+	if h.users == nil {
+		return nil
+	}
+
+	u, err := h.users.GetByID(ctx, assignee)
+	if err != nil {
+		return err
+	}
+	if u == nil || !u.Active {
+		return errors.New("assignee not found or inactive")
+	}
+	if _, ok := allowedAssigneeRoles[strings.ToLower(u.Role)]; !ok {
+		return errors.New("assignee role not permitted")
+	}
+	return nil
 }

@@ -25,12 +25,16 @@ func NewAuthService(users repository.UserRepository, sessionSecret string) *Auth
 func (a *AuthService) Register(ctx context.Context, email, name, password string, role string) (*models.User, error) {
 	email = strings.TrimSpace(email)
 	name = strings.TrimSpace(name)
-	if role == "" {
-		role = "agent"
-	}
 	if email == "" || name == "" || len(password) < 6 {
 		return nil, errors.New("invalid input")
 	}
+
+	// Self-registration is only allowed for end users.
+	role = strings.ToLower(strings.TrimSpace(role))
+	if role != "end_user" {
+		role = "end_user"
+	}
+
 	hash, err := utils.HashPassword(password)
 	if err != nil {
 		return nil, err
