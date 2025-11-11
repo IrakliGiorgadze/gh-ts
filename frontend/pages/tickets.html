@@ -91,12 +91,7 @@
     <script src="/assets/js/guard.js"></script>
     <script>
       (function () {
-        // Optional navbar actions
-        if (typeof addDefaultNav === "function") {
-          try {
-            addDefaultNav("navbar");
-          } catch (_) {}
-        }
+        // Navbar is loaded by components.js automatically
 
         // State
         let PAGE = 1;
