@@ -188,7 +188,6 @@
       sort = "updated_at",
       order = "desc",
     } = {}) {
-      try {
         const params = new URLSearchParams();
         if (q) params.set("q", q);
         if (status) params.set("status", status);
@@ -218,19 +217,6 @@
         }
         // ultimate fallback
         return { items: [], total: 0 };
-      } catch (e) {
-        // Offline fallback: localStorage + client-side paging
-        console.warn("[API.searchTickets] Falling back to localStorage:", e);
-        const db = _dbLoad();
-        const filtered = _filterList(db.tickets, {
-          q,
-          status,
-          priority,
-          category,
-        });
-        const items = filtered.slice(offset, offset + limit);
-        return { items, total: filtered.length };
-      }
     },
 
     // Backward-compat — returns array only (older pages). Internally uses searchTickets.
@@ -245,80 +231,28 @@
     },
 
     async getTicket(id) {
-      try {
-        return await fetchJSON(`/tickets/${encodeURIComponent(id)}`, {
-          method: "GET",
-        });
-      } catch (e) {
-        console.warn("[API.getTicket] Falling back to localStorage:", e);
-        const db = _dbLoad();
-        return db.tickets.find((t) => t.id === id) || null;
-      }
+      return await fetchJSON(`/tickets/${encodeURIComponent(id)}`, {
+        method: "GET",
+      });
     },
 
     async createTicket(t) {
-      try {
-        return await fetchJSON(`/tickets`, { method: "POST", body: t });
-      } catch (e) {
-        console.warn("[API.createTicket] Falling back to localStorage:", e);
-        const db = _dbLoad();
-        const id = `T-${db.nextId++}`;
-        const now = Date.now();
-        const rec = {
-          id,
-          title: t.title,
-          description: t.description || "",
-          category: t.category || "Software",
-          priority: t.priority || "Low",
-          department: t.department || "",
-          status: "New",
-          assignee: t.assignee || "",
-          updatedAt: now,
-          createdAt: now,
-          comments: [],
-        };
-        db.tickets.push(rec);
-        _dbSave(db);
-        return rec;
-      }
+      return await fetchJSON(`/tickets`, { method: "POST", body: t });
     },
 
     async updateTicket(id, patch) {
-      try {
-        return await fetchJSON(`/tickets/${encodeURIComponent(id)}`, {
-          method: "PATCH",
-          body: patch,
-        });
-      } catch (e) {
-        console.warn("[API.updateTicket] Falling back to localStorage:", e);
-        const db = _dbLoad();
-        const t = db.tickets.find((x) => x.id === id);
-        if (!t) throw new ApiError("not found", 404);
-        Object.assign(t, patch);
-        t.updatedAt = Date.now();
-        _dbSave(db);
-        return t;
-      }
+      return await fetchJSON(`/tickets/${encodeURIComponent(id)}`, {
+        method: "PATCH",
+        body: patch,
+      });
     },
 
     async addComment(id, text) {
-      try {
-        // Server returns full updated ticket (your backend does this)
-        return await fetchJSON(`/tickets/${encodeURIComponent(id)}/comments`, {
-          method: "POST",
-          body: { text },
-        });
-      } catch (e) {
-        console.warn("[API.addComment] Falling back to localStorage:", e);
-        const db = _dbLoad();
-        const t = db.tickets.find((x) => x.id === id);
-        if (!t) throw new ApiError("not found", 404);
-        t.comments = t.comments || [];
-        t.comments.push({ text, createdAt: Date.now() });
-        t.updatedAt = Date.now();
-        _dbSave(db);
-        return t;
-      }
+      // Server returns full updated ticket (your backend does this)
+      return await fetchJSON(`/tickets/${encodeURIComponent(id)}/comments`, {
+        method: "POST",
+        body: { text },
+      });
     },
 
     // NEW: backend reports summary (with client-side fallback)

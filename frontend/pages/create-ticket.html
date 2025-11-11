@@ -169,9 +169,21 @@
         try {
           const created = await API.createTicket(t);
           show(okEl);
-          location.href = `./ticket-detail.html?id=${encodeURIComponent(
-            created.id
-          )}`;
+          const ticketId = (created && (created.id || (created.ticket && created.ticket.id))) || "";
+          if (!ticketId) {
+            console.error("[Create] Missing ticket id in response:", created);
+            alert("Create succeeded, but ticket ID was missing. Redirecting to list.");
+            location.href = "./tickets.html";
+            return;
+          }
+          try {
+            await API.getTicket(ticketId);
+            location.href = `./ticket-detail.html?id=${encodeURIComponent(ticketId)}`;
+          } catch (e2) {
+            setTimeout(() => {
+              location.href = `./ticket-detail.html?id=${encodeURIComponent(ticketId)}`;
+            }, 250);
+          }
         } catch (e) {
           console.error(e);
           errEl.textContent = "Failed to create ticket";

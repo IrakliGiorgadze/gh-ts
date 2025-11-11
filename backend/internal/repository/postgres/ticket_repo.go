@@ -49,7 +49,7 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
-		LEFT JOIN users u ON u.id = t.assignee::uuid
+		LEFT JOIN users u ON u.id = NULLIF(t.assignee, '')::uuid
 		WHERE ` + strings.Join(conds, " AND ") + `
 		ORDER BY t.updated_at DESC
 		LIMIT $` + itoa(len(args)-1) + ` OFFSET $` + itoa(len(args))
@@ -112,7 +112,7 @@ func (r *TicketRepo) ListAdv(
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
-		LEFT JOIN users u ON u.id = t.assignee::uuid
+		LEFT JOIN users u ON u.id = NULLIF(t.assignee, '')::uuid
 		%s
 		ORDER BY t.%s %s
 		LIMIT $%d OFFSET $%d
@@ -164,7 +164,7 @@ func (r *TicketRepo) Get(ctx context.Context, id string) (*models.Ticket, error)
 			t.assignee, t.department, t.created_by, t.created_at, t.updated_at,
 			COALESCE(u.name, ''), COALESCE(u.email, '')
 		FROM tickets t
-		LEFT JOIN users u ON u.id = t.assignee::uuid
+		LEFT JOIN users u ON u.id = NULLIF(t.assignee, '')::uuid
 		WHERE t.id = $1
 	`, id).Scan(
 		&t.ID, &t.Title, &t.Description, &t.Category, &t.Priority,
@@ -206,7 +206,7 @@ func (r *TicketRepo) Create(ctx context.Context, t *models.Ticket) error {
 		VALUES ($1,$2,$3,$4,$5,$6,$7,$8,$9,$10)
 		RETURNING id, created_at, updated_at
 	`,
-		t.Title, t.Description, t.Category, t.Priority, "New", t.Assignee, t.Department, t.CreatedBy, now, now,
+		t.Title, t.Description, t.Category, t.Priority, "New", nullIfEmpty(t.Assignee), t.Department, t.CreatedBy, now, now,
 	).Scan(&t.ID, &t.CreatedAt, &t.UpdatedAt)
 	return err
 }
@@ -218,7 +218,7 @@ func (r *TicketRepo) Update(ctx context.Context, t *models.Ticket) error {
 			title=$1, description=$2, category=$3, priority=$4, status=$5, assignee=$6, department=$7, updated_at=$8
 		WHERE id=$9
 	`,
-		t.Title, t.Description, t.Category, t.Priority, t.Status, t.Assignee, t.Department, t.UpdatedAt, t.ID,
+		t.Title, t.Description, t.Category, t.Priority, t.Status, nullIfEmpty(t.Assignee), t.Department, t.UpdatedAt, t.ID,
 	)
 	if err != nil {
 		return err
@@ -311,7 +311,7 @@ func buildTicketWhere(q, status, priority, category, assignee string) (string, [
 		args = append(args, a)
 		// Cast assignee to UUID for comparison since it's stored as TEXT but represents a UUID
 		// Handle NULL assignee values by checking both NULL and UUID cast
-		clauses = append(clauses, "(t.assignee IS NOT NULL AND t.assignee::uuid = $"+itoa(len(args))+"::uuid)")
+		clauses = append(clauses, "(NULLIF(t.assignee,'')::uuid = $"+itoa(len(args))+"::uuid)")
 	}
 
 	return "WHERE " + strings.Join(clauses, " AND "), args
@@ -333,6 +333,13 @@ func sanitizeOrder(o, def string) string {
 	default:
 		return def
 	}
+}
+
+func nullIfEmpty(s string) any {
+	if strings.TrimSpace(s) == "" {
+		return nil
+	}
+	return s
 }
 
 // small helper to avoid fmt for performance-sensitive path.
