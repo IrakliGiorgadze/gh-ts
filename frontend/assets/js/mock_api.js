@@ -1,4 +1,5 @@
 
+// MOCK DATA - FOR DEVELOPMENT ONLY - NOT USED IN PRODUCTION
 // Very small mock API backed by localStorage.
 // Provides: users, tickets, comments, simple SLA indicator.
 

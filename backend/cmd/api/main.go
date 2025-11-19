@@ -16,7 +16,12 @@ import (
 
 func main() {
 	// config + logger
-	cfg := config.Load()
+	cfg, err := config.Load()
+	if err != nil {
+		// Use fmt for error since logger might not be initialized yet
+		os.Stderr.WriteString("Failed to load configuration: " + err.Error() + "\n")
+		os.Exit(1)
+	}
 	l := logger.New(cfg.Env)
 
 	// db

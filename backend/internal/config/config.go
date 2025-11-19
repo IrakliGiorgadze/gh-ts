@@ -1,6 +1,9 @@
 package config
 
-import "os"
+import (
+	"fmt"
+	"os"
+)
 
 type Config struct {
 	Env           string
@@ -17,12 +20,30 @@ func env(k, def string) string {
 	return def
 }
 
-func Load() Config {
+func envRequired(k string) (string, error) {
+	v := os.Getenv(k)
+	if v == "" {
+		return "", fmt.Errorf("required environment variable %s is not set", k)
+	}
+	return v, nil
+}
+
+func Load() (Config, error) {
+	dbURL, err := envRequired("DB_DSN")
+	if err != nil {
+		return Config{}, err
+	}
+
+	sessionSecret, err := envRequired("SESSION_SECRET")
+	if err != nil {
+		return Config{}, err
+	}
+
 	return Config{
 		Env:           env("APP_ENV", "dev"),
 		Port:          env("API_PORT", "8080"),
-		DBURL:         env("DB_DSN", "postgres://ticketuser:ticketpass123@localhost:5432/ticketing_db?sslmode=disable"),
+		DBURL:         dbURL,
 		Origin:        env("CORS_ORIGIN", "http://localhost:3000"),
-		SessionSecret: env("SESSION_SECRET", "dev-change-me"),
-	}
+		SessionSecret: sessionSecret,
+	}, nil
 }
