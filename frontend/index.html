@@ -8,7 +8,7 @@
   </head>
   <body>
     <div id="navbar"></div>
-    <div class="container">
+    <div class="container" id="main-content" style="display: none;">
       <div class="nav">
         <div class="brand">
           <img
@@ -105,7 +105,68 @@
     <script src="./assets/js/utils.js"></script>
     <script src="/assets/js/i18n.js"></script>
     <script src="./assets/js/api.js"></script>
-    <script src="/assets/js/components.js"></script>
-    <script src="./assets/js/dashboard.js"></script>
+    <script>
+      // Auth check - redirect to login if not authenticated
+      // This prevents unauthenticated users from seeing the dashboard
+      // Content is hidden by default and only shown after authentication
+      (async function() {
+        // Ensure main content is hidden initially
+        const mainContent = document.getElementById('main-content');
+        if (mainContent) {
+          mainContent.style.display = 'none';
+        }
+        
+        // Wait for DOM to be ready
+        if (document.readyState === 'loading') {
+          await new Promise(resolve => {
+            document.addEventListener('DOMContentLoaded', resolve);
+          });
+        }
+        
+        // Check if we just logged in (from sessionStorage flag set by login page)
+        const justLoggedIn = sessionStorage.getItem('just_logged_in') === 'true';
+        
+        if (justLoggedIn) {
+          // Just logged in, wait a bit for cookie to be available, then clear flag
+          await new Promise(resolve => setTimeout(resolve, 200));
+          sessionStorage.removeItem('just_logged_in');
+        }
+        
+        try {
+          const me = await Auth.me();
+          if (!me || !me.email) {
+            // Not authenticated, redirect to login with next parameter immediately
+            // Don't show any content
+            console.log("[Index] Not authenticated, redirecting to login");
+            const next = encodeURIComponent(location.pathname + location.search);
+            location.replace('./pages/login.html?next=' + next);
+            return; // Stop execution - page will redirect
+          }
+          console.log("[Index] Authenticated as:", me.email);
+          
+          // User is authenticated - show the content
+          if (mainContent) {
+            mainContent.style.display = 'block';
+          }
+        } catch (e) {
+          // Auth check failed, redirect to login immediately
+          // Don't show any content
+          console.error("[Index] Auth check error:", e);
+          const next = encodeURIComponent(location.pathname + location.search);
+          location.replace('./pages/login.html?next=' + next);
+          return; // Stop execution - page will redirect
+        }
+        
+        // Only load dashboard components if authenticated
+        // Load components after auth check passes
+        const script = document.createElement('script');
+        script.src = '/assets/js/components.js';
+        document.body.appendChild(script);
+        
+        const dashboardScript = document.createElement('script');
+        dashboardScript.src = './assets/js/dashboard.js';
+        document.body.appendChild(dashboardScript);
+      })();
+    </script>
   </body>
 </html>

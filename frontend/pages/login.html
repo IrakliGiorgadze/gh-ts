@@ -102,6 +102,8 @@
 
             if (res.ok) {
               console.log("[Login] Login successful, user:", data);
+              // Set flag to indicate we just logged in (for index.html to wait for cookie)
+              sessionStorage.setItem("just_logged_in", "true");
               // Cookie is set by the server, just redirect
               // No need to verify - the cookie will be available on the next page
               const params = new URLSearchParams(window.location.search);
