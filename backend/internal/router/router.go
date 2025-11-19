@@ -79,6 +79,7 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 	userH := handlers.NewUserHTTP(userRepo)
 	r.Route("/api/users", func(r chi.Router) {
 		// Admin-only endpoints
+		r.With(middleware.RequireRoles("admin")).Post("/", userH.Create())
 		r.With(middleware.RequireRoles("admin")).Get("/", userH.List())
 		r.With(middleware.RequireRoles("admin")).Patch("/{id}/role", userH.UpdateRole())
 		r.With(middleware.RequireRoles("admin")).Patch("/{id}/active", userH.SetActive())

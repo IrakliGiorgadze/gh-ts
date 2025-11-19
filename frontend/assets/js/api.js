@@ -240,6 +240,14 @@
 
   // ---------- Users (admin only) ----------
   const Users = {
+    // Create user (admin only)
+    async create(email, name, password, role) {
+      const data = await fetchJSON("/users", {
+        method: "POST",
+        body: { email, name, password, role },
+      });
+      return data;
+    },
     // List users (admin only) - can filter by role
     async list({ role = "", active = true, limit = 100, offset = 0 } = {}) {
       try {

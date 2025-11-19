@@ -1,0 +1,261 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>User Management - Admin</title>
+    <link rel="stylesheet" href="../../assets/css/main.css" />
+  </head>
+  <body>
+    <!-- Global navbar -->
+    <div id="navbar"></div>
+
+    <main
+      class="container"
+      style="padding: 16px; max-width: 1200px; margin: auto"
+    >
+      <header
+        style="
+          display: flex;
+          gap: 12px;
+          align-items: center;
+          flex-wrap: wrap;
+          margin-bottom: 24px;
+        "
+      >
+        <h2 style="margin: 0">User Management</h2>
+      </header>
+
+      <!-- Create User Form -->
+      <section class="card" style="margin-bottom: 24px">
+        <h3 style="margin-top: 0">Create New User</h3>
+        <div class="grid" style="gap: 12px; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr))">
+          <input
+            id="create-email"
+            class="input"
+            type="email"
+            placeholder="Email"
+            required
+          />
+          <input
+            id="create-name"
+            class="input"
+            placeholder="Full Name"
+            required
+          />
+          <input
+            id="create-password"
+            class="input"
+            type="password"
+            placeholder="Password (min 6 chars)"
+            required
+          />
+          <select id="create-role" class="input" required>
+            <option value="">Select Role</option>
+            <option value="admin">Admin</option>
+            <option value="agent">Agent</option>
+            <option value="end_user">End User</option>
+          </select>
+          <button id="btn-create" class="btn">Create User</button>
+        </div>
+        <div id="create-msg" class="badge" style="display: none; margin-top: 12px"></div>
+      </section>
+
+      <!-- Users List -->
+      <section class="card">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px">
+          <h3 style="margin: 0">All Users</h3>
+          <div style="display: flex; gap: 8px; align-items: center">
+            <select id="filter-role" class="input" style="width: auto">
+              <option value="">All Roles</option>
+              <option value="admin">Admin</option>
+              <option value="agent">Agent</option>
+              <option value="end_user">End User</option>
+            </select>
+            <button id="btn-refresh" class="btn ghost">Refresh</button>
+          </div>
+        </div>
+        <div id="users-loading" style="text-align: center; padding: 20px; color: var(--muted)">
+          Loading users...
+        </div>
+        <table id="users-table" style="display: none; width: 100%; border-collapse: collapse">
+          <thead>
+            <tr style="border-bottom: 1px solid rgba(255,255,255,0.1)">
+              <th style="text-align: left; padding: 8px">Email</th>
+              <th style="text-align: left; padding: 8px">Name</th>
+              <th style="text-align: left; padding: 8px">Role</th>
+              <th style="text-align: left; padding: 8px">Status</th>
+              <th style="text-align: left; padding: 8px">Created</th>
+            </tr>
+          </thead>
+          <tbody id="users-tbody"></tbody>
+        </table>
+        <div id="users-empty" style="display: none; text-align: center; padding: 20px; color: var(--muted)">
+          No users found.
+        </div>
+      </section>
+    </main>
+
+    <script src="../../assets/js/utils.js"></script>
+    <script src="../../assets/js/components.js"></script>
+    <script src="../../assets/js/api.js"></script>
+    <script src="../../assets/js/i18n.js"></script>
+    <script>
+      (function () {
+        const byId = (id) => document.getElementById(id);
+        const escapeHtml = (text) => {
+          const div = document.createElement("div");
+          div.textContent = text;
+          return div.innerHTML;
+        };
+
+        let currentUser = null;
+
+        // Check admin access
+        async function checkAdmin() {
+          try {
+            currentUser = await Auth.me();
+            if (!currentUser || currentUser.role !== "admin") {
+              alert("Access denied. Admin only.");
+              location.href = "/index.html";
+              return false;
+            }
+            return true;
+          } catch (e) {
+            console.error("[Admin] Auth check failed:", e);
+            location.href = "/pages/login.html";
+            return false;
+          }
+        }
+
+        // Create user
+        const btnCreate = byId("btn-create");
+        const createMsg = byId("create-msg");
+        const createEmail = byId("create-email");
+        const createName = byId("create-name");
+        const createPassword = byId("create-password");
+        const createRole = byId("create-role");
+
+        async function handleCreate() {
+          const email = createEmail.value.trim();
+          const name = createName.value.trim();
+          const password = createPassword.value;
+          const role = createRole.value;
+
+          if (!email || !name || !password || !role) {
+            createMsg.textContent = "Please fill all fields";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+            return;
+          }
+
+          if (password.length < 6) {
+            createMsg.textContent = "Password must be at least 6 characters";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+            return;
+          }
+
+          btnCreate.disabled = true;
+          createMsg.style.display = "none";
+
+          try {
+            const user = await Users.create(email, name, password, role);
+            createMsg.textContent = `User "${user.name}" created successfully`;
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--success, #51cf66)";
+
+            // Clear form
+            createEmail.value = "";
+            createName.value = "";
+            createPassword.value = "";
+            createRole.value = "";
+
+            // Refresh list
+            setTimeout(() => {
+              loadUsers();
+            }, 500);
+          } catch (e) {
+            createMsg.textContent = e.message || "Failed to create user";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+          } finally {
+            btnCreate.disabled = false;
+          }
+        }
+
+        btnCreate.onclick = handleCreate;
+
+        // Load users list
+        const usersTable = byId("users-table");
+        const usersTbody = byId("users-tbody");
+        const usersLoading = byId("users-loading");
+        const usersEmpty = byId("users-empty");
+        const filterRole = byId("filter-role");
+        const btnRefresh = byId("btn-refresh");
+
+        async function loadUsers() {
+          usersLoading.style.display = "block";
+          usersTable.style.display = "none";
+          usersEmpty.style.display = "none";
+          usersTbody.innerHTML = "";
+
+          try {
+            const roleFilter = filterRole.value || "";
+            const result = await Users.list({
+              role: roleFilter,
+              active: true,
+              limit: 200,
+              offset: 0,
+            });
+
+            if (result.items.length === 0) {
+              usersEmpty.style.display = "block";
+              usersLoading.style.display = "none";
+              return;
+            }
+
+            result.items.forEach((user) => {
+              const tr = document.createElement("tr");
+              tr.style.borderBottom = "1px solid rgba(255,255,255,0.05)";
+              tr.innerHTML = `
+                <td style="padding: 8px">${escapeHtml(user.email)}</td>
+                <td style="padding: 8px">${escapeHtml(user.name)}</td>
+                <td style="padding: 8px">
+                  <span class="badge">${escapeHtml(user.role)}</span>
+                </td>
+                <td style="padding: 8px">
+                  <span class="badge ${user.active ? "" : "muted"}">
+                    ${user.active ? "Active" : "Inactive"}
+                  </span>
+                </td>
+                <td style="padding: 8px; color: var(--muted); font-size: 12px">
+                  ${new Date(user.createdAt).toLocaleDateString()}
+                </td>
+              `;
+              usersTbody.appendChild(tr);
+            });
+
+            usersTable.style.display = "table";
+            usersLoading.style.display = "none";
+          } catch (e) {
+            console.error("[Admin] Failed to load users:", e);
+            usersLoading.textContent = "Failed to load users. Please try again.";
+            usersLoading.style.color = "var(--error, #ff6b6b)";
+          }
+        }
+
+        filterRole.onchange = loadUsers;
+        btnRefresh.onclick = loadUsers;
+
+        // Initialize
+        (async () => {
+          if (await checkAdmin()) {
+            await loadUsers();
+          }
+        })();
+      })();
+    </script>
+  </body>
+</html>
+

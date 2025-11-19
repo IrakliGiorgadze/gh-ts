@@ -5,6 +5,60 @@
     addDefaultNav("nav-actions");
   }
 
+  // Show admin quick access if user is admin
+  async function checkAdminAccess() {
+    try {
+      // Try to use AuthGuard if available (from guard.js), otherwise use Auth.me()
+      let me = null;
+      if (window.AuthGuard && window.AuthGuard.user) {
+        me = window.AuthGuard.user;
+      } else if (window.AuthGuard && typeof window.AuthGuard.ensureAuth === "function") {
+        me = await window.AuthGuard.ensureAuth();
+      } else {
+        me = await Auth.me();
+      }
+      
+      console.log("[Dashboard] Current user:", me);
+      if (me && me.role === "admin") {
+        const adminAccess = document.getElementById("admin-quick-access");
+        if (adminAccess) {
+          adminAccess.style.display = "block";
+          console.log("[Dashboard] Admin access card shown");
+        } else {
+          console.warn("[Dashboard] Admin access element not found");
+        }
+      } else {
+        console.log("[Dashboard] User is not admin, role:", me?.role);
+      }
+    } catch (e) {
+      // Not authenticated or error - hide admin access
+      console.warn("[Dashboard] Could not check admin status:", e);
+    }
+  }
+  
+  // Wait for DOM and auth to be ready
+  function initAdminAccess() {
+    if (document.readyState === "loading") {
+      document.addEventListener("DOMContentLoaded", () => {
+        setTimeout(checkAdminAccess, 200);
+      });
+    } else {
+      // Also listen for auth event from guard.js
+      document.addEventListener("auth:user", (e) => {
+        const me = e.detail;
+        if (me && me.role === "admin") {
+          const adminAccess = document.getElementById("admin-quick-access");
+          if (adminAccess) {
+            adminAccess.style.display = "block";
+          }
+        }
+      });
+      setTimeout(checkAdminAccess, 200);
+    }
+  }
+  
+  initAdminAccess();
+
   // Helper to show error message
   function showError(message) {
     const tbody = document.getElementById("tickets-body");

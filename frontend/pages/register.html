@@ -20,11 +20,6 @@
             class="input"
             placeholder="Password (min 6 chars)"
           />
-          <select id="role" class="input">
-            <option value="end_user">End User</option>
-            <option value="agent">Agent</option>
-            <option value="admin">Admin</option>
-          </select>
           <button id="btn" class="btn">Register</button>
           <div id="msg" class="badge" style="display: none"></div>
         </div>
@@ -36,11 +31,11 @@
     <script src="../assets/js/api.js"></script>
     <script src="../assets/js/i18n.js"></script>
     <script>
-      async function register(email, name, password, role) {
+      async function register(email, name, password) {
         const res = await fetch("/api/auth/register", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ email, name, password, role }),
+          body: JSON.stringify({ email, name, password }),
         });
         if (!res.ok) {
           throw new Error((await res.json()).error || "Registration failed");
@@ -51,11 +46,10 @@
         const email = document.getElementById("email").value.trim();
         const name = document.getElementById("name").value.trim();
         const pw = document.getElementById("password").value;
-        const role = document.getElementById("role").value;
         const msg = document.getElementById("msg");
         try {
-          await register(email, name, pw, role);
-          msg.textContent = "User created. You can login now.";
+          await register(email, name, pw);
+          msg.textContent = "Account created successfully. You can login now.";
           msg.style.display = "inline-block";
           setTimeout(() => (location.href = "./login.html"), 800);
         } catch (e) {

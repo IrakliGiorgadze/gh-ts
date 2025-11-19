@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"strings"
 
 	"gh-ts/internal/repository"
 	"gh-ts/internal/utils"
@@ -17,6 +18,70 @@ type UserHTTP struct {
 
 func NewUserHTTP(r repository.UserRepository) *UserHTTP {
 	return &UserHTTP{repo: r}
+}
+
+// POST /api/users (admin-only)
+func (h *UserHTTP) Create() http.HandlerFunc {
+	return func(w http.ResponseWriter, r *http.Request) {
+		var req struct {
+			Email    string `json:"email"`
+			Name     string `json:"name"`
+			Password string `json:"password"`
+			Role     string `json:"role"`
+		}
+		if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+			utils.Error(w, http.StatusBadRequest, "invalid json")
+			return
+		}
+
+		// Validate required fields
+		email := strings.TrimSpace(req.Email)
+		name := strings.TrimSpace(req.Name)
+		password := req.Password
+		role := strings.ToLower(strings.TrimSpace(req.Role))
+
+		if email == "" || name == "" || password == "" || role == "" {
+			utils.Error(w, http.StatusBadRequest, "email, name, password, and role are required")
+			return
+		}
+
+		if len(password) < 6 {
+			utils.Error(w, http.StatusBadRequest, "password must be at least 6 characters")
+			return
+		}
+
+		// Validate role
+		allowedRoles := map[string]bool{
+			"admin":    true,
+			"agent":    true,
+			"end_user": true,
+		}
+		if !allowedRoles[role] {
+			utils.Error(w, http.StatusBadRequest, "invalid role. allowed: admin, agent, end_user")
+			return
+		}
+
+		// Hash password
+		hash, err := utils.HashPassword(password)
+		if err != nil {
+			utils.Error(w, http.StatusInternalServerError, "failed to hash password")
+			return
+		}
+
+		// Create user
+		u, err := h.repo.Create(r.Context(), email, name, role, hash)
+		if err != nil {
+			// Check for duplicate email error
+			if strings.Contains(err.Error(), "duplicate") || strings.Contains(err.Error(), "unique") {
+				utils.Error(w, http.StatusBadRequest, "email already exists")
+				return
+			}
+			utils.Error(w, http.StatusInternalServerError, err.Error())
+			return
+		}
+
+		utils.JSON(w, http.StatusCreated, u)
+	}
 }
 
 // GET /api/users?q=&role=&active=&limit=&offset=

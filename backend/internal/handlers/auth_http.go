@@ -26,13 +26,12 @@ func (h *AuthHTTP) Register() http.HandlerFunc {
 			Email    string `json:"email"`
 			Name     string `json:"name"`
 			Password string `json:"password"`
-			Role     string `json:"role"`
 		}
 		if err := json.NewDecoder(r.Body).Decode(&in); err != nil {
 			utils.Error(w, http.StatusBadRequest, "invalid json")
 			return
 		}
-		u, err := h.svc.Register(r.Context(), in.Email, in.Name, in.Password, in.Role)
+		u, err := h.svc.Register(r.Context(), in.Email, in.Name, in.Password)
 		if err != nil {
 			utils.Error(w, http.StatusBadRequest, err.Error())
 			return

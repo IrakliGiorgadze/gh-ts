@@ -31,6 +31,12 @@
             u.textContent = me.id;
           }
         }
+
+        // Show admin link if user is admin
+        const adminLink = document.getElementById("nav-admin");
+        if (adminLink && me.role === "admin") {
+          adminLink.style.display = "inline-block";
+        }
       } else {
         // Not authenticated — optionally hide logout and show Sign in
         const btn = document.getElementById("btn-logout");

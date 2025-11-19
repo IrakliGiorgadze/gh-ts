@@ -22,7 +22,7 @@ func NewAuthService(users repository.UserRepository, sessionSecret string) *Auth
 	return &AuthService{users: users, sessionSecret: sessionSecret}
 }
 
-func (a *AuthService) Register(ctx context.Context, email, name, password string, role string) (*models.User, error) {
+func (a *AuthService) Register(ctx context.Context, email, name, password string) (*models.User, error) {
 	email = strings.TrimSpace(email)
 	name = strings.TrimSpace(name)
 	if email == "" || name == "" || len(password) < 6 {
@@ -30,10 +30,7 @@ func (a *AuthService) Register(ctx context.Context, email, name, password string
 	}
 
 	// Self-registration is only allowed for end users.
-	role = strings.ToLower(strings.TrimSpace(role))
-	if role != "end_user" {
-		role = "end_user"
-	}
+	role := "end_user"
 
 	hash, err := utils.HashPassword(password)
 	if err != nil {
@@ -43,11 +40,15 @@ func (a *AuthService) Register(ctx context.Context, email, name, password string
 }
 
 func (a *AuthService) Login(ctx context.Context, email, password string) (token string, user *models.User, err error) {
+	email = strings.TrimSpace(email)
 	u, hash, err := a.users.GetByEmail(ctx, email)
 	if err != nil {
 		return "", nil, err
 	}
 	if u == nil {
+		return "", nil, ErrInvalidCredentials
+	}
+	if !u.Active {
 		return "", nil, ErrInvalidCredentials
 	}
 	if !utils.CheckPassword(hash, password) {
