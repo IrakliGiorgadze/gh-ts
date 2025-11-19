@@ -1,0 +1,2223 @@
+{
+  "testSuite": {
+    "name": "IT Ticketing System - User Acceptance Test Cases",
+    "version": "1.0",
+    "description": "Comprehensive test cases covering all application features and security validations",
+    "lastUpdated": "2025-11-19"
+  },
+  "testCases": [
+    {
+      "id": "AUTH-001",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register new end user with valid data",
+      "priority": "Critical",
+      "preconditions": [
+        "Application is running",
+        "User is on registration page"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter valid email: testuser@example.com",
+        "Enter valid name: Test User",
+        "Enter valid password: Test1234 (8+ chars, uppercase, lowercase, number)",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "testuser@example.com",
+        "name": "Test User",
+        "password": "Test1234"
+      },
+      "expectedResults": [
+        "User is created successfully",
+        "User role is automatically set to 'end_user'",
+        "User is redirected to login page or dashboard",
+        "User can login with registered credentials"
+      ],
+      "passCriteria": "User registration succeeds and user can login"
+    },
+    {
+      "id": "AUTH-002",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register with invalid email format",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User is on registration page"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter invalid email: invalid-email",
+        "Enter valid name: Test User",
+        "Enter valid password: Test1234",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "invalid-email",
+        "name": "Test User",
+        "password": "Test1234"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid email format'",
+        "User is not created",
+        "Form remains on registration page"
+      ],
+      "passCriteria": "Registration fails with appropriate error message"
+    },
+    {
+      "id": "AUTH-003",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register with weak password (less than 8 characters)",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User is on registration page"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter valid email: test@example.com",
+        "Enter valid name: Test User",
+        "Enter weak password: Test12 (7 characters)",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Test User",
+        "password": "Test12"
+      },
+      "expectedResults": [
+        "Error message displayed: 'password must be at least 8 characters'",
+        "User is not created"
+      ],
+      "passCriteria": "Registration fails with password length error"
+    },
+    {
+      "id": "AUTH-004",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register with password missing uppercase letter",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User is on registration page"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter valid email: test@example.com",
+        "Enter valid name: Test User",
+        "Enter password without uppercase: test1234",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Test User",
+        "password": "test1234"
+      },
+      "expectedResults": [
+        "Error message displayed: 'password must contain at least one uppercase letter'",
+        "User is not created"
+      ],
+      "passCriteria": "Registration fails with password strength error"
+    },
+    {
+      "id": "AUTH-005",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register with password missing lowercase letter",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User is on registration page"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter valid email: test@example.com",
+        "Enter valid name: Test User",
+        "Enter password without lowercase: TEST1234",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Test User",
+        "password": "TEST1234"
+      },
+      "expectedResults": [
+        "Error message displayed: 'password must contain at least one lowercase letter'",
+        "User is not created"
+      ],
+      "passCriteria": "Registration fails with password strength error"
+    },
+    {
+      "id": "AUTH-006",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register with password missing number",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User is on registration page"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter valid email: test@example.com",
+        "Enter valid name: Test User",
+        "Enter password without number: TestPassword",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Test User",
+        "password": "TestPassword"
+      },
+      "expectedResults": [
+        "Error message displayed: 'password must contain at least one number'",
+        "User is not created"
+      ],
+      "passCriteria": "Registration fails with password strength error"
+    },
+    {
+      "id": "AUTH-007",
+      "category": "Authentication",
+      "subcategory": "User Registration",
+      "name": "Register with duplicate email",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User with email test@example.com already exists"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Enter existing email: test@example.com",
+        "Enter valid name: Another User",
+        "Enter valid password: Test1234",
+        "Click Register button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Another User",
+        "password": "Test1234"
+      },
+      "expectedResults": [
+        "Error message displayed: 'email already exists'",
+        "User is not created"
+      ],
+      "passCriteria": "Registration fails with duplicate email error"
+    },
+    {
+      "id": "AUTH-008",
+      "category": "Authentication",
+      "subcategory": "Login",
+      "name": "Login with valid credentials",
+      "priority": "Critical",
+      "preconditions": [
+        "Application is running",
+        "User account exists with email: admin@test.com, password: Admin123"
+      ],
+      "testSteps": [
+        "Navigate to /pages/login.html",
+        "Enter email: admin@test.com",
+        "Enter password: Admin123",
+        "Click Login button"
+      ],
+      "testData": {
+        "email": "admin@test.com",
+        "password": "Admin123"
+      },
+      "expectedResults": [
+        "Login succeeds",
+        "User is redirected to dashboard (/index.html)",
+        "Session cookie is set with HttpOnly and Secure flags (in production)",
+        "User information is displayed in navigation"
+      ],
+      "passCriteria": "User successfully logs in and is redirected to dashboard"
+    },
+    {
+      "id": "AUTH-009",
+      "category": "Authentication",
+      "subcategory": "Login",
+      "name": "Login with invalid email",
+      "priority": "High",
+      "preconditions": [
+        "Application is running"
+      ],
+      "testSteps": [
+        "Navigate to /pages/login.html",
+        "Enter non-existent email: nonexistent@example.com",
+        "Enter any password: Test1234",
+        "Click Login button"
+      ],
+      "testData": {
+        "email": "nonexistent@example.com",
+        "password": "Test1234"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid credentials'",
+        "User remains on login page",
+        "No session cookie is set"
+      ],
+      "passCriteria": "Login fails with appropriate error message"
+    },
+    {
+      "id": "AUTH-010",
+      "category": "Authentication",
+      "subcategory": "Login",
+      "name": "Login with incorrect password",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User account exists with email: test@example.com"
+      ],
+      "testSteps": [
+        "Navigate to /pages/login.html",
+        "Enter valid email: test@example.com",
+        "Enter incorrect password: WrongPass123",
+        "Click Login button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "password": "WrongPass123"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid credentials'",
+        "User remains on login page",
+        "No session cookie is set"
+      ],
+      "passCriteria": "Login fails with appropriate error message"
+    },
+    {
+      "id": "AUTH-011",
+      "category": "Authentication",
+      "subcategory": "Login",
+      "name": "Login with inactive user account",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User account exists but is marked as inactive"
+      ],
+      "testSteps": [
+        "Navigate to /pages/login.html",
+        "Enter email of inactive user",
+        "Enter correct password",
+        "Click Login button"
+      ],
+      "testData": {
+        "email": "inactive@example.com",
+        "password": "Test1234"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid credentials'",
+        "Login fails",
+        "No session cookie is set"
+      ],
+      "passCriteria": "Inactive users cannot login"
+    },
+    {
+      "id": "AUTH-012",
+      "category": "Authentication",
+      "subcategory": "Rate Limiting",
+      "name": "Login rate limiting - exceed 5 requests per minute",
+      "priority": "High",
+      "preconditions": [
+        "Application is running"
+      ],
+      "testSteps": [
+        "Navigate to /pages/login.html",
+        "Attempt login 6 times rapidly (within 1 minute)",
+        "Observe response on 6th attempt"
+      ],
+      "testData": {
+        "attempts": 6,
+        "timeWindow": "1 minute"
+      },
+      "expectedResults": [
+        "First 5 attempts return 401 (unauthorized) or 200 (if credentials valid)",
+        "6th attempt returns 429 (Too Many Requests)",
+        "Response includes X-Ratelimit-Limit: 5 header",
+        "Response includes X-Ratelimit-Remaining: 0 header"
+      ],
+      "passCriteria": "Rate limiting prevents brute force attacks"
+    },
+    {
+      "id": "AUTH-013",
+      "category": "Authentication",
+      "subcategory": "Rate Limiting",
+      "name": "Register rate limiting - exceed 5 requests per minute",
+      "priority": "High",
+      "preconditions": [
+        "Application is running"
+      ],
+      "testSteps": [
+        "Navigate to /pages/register.html",
+        "Attempt registration 6 times rapidly (within 1 minute)",
+        "Observe response on 6th attempt"
+      ],
+      "testData": {
+        "attempts": 6,
+        "timeWindow": "1 minute"
+      },
+      "expectedResults": [
+        "First 5 attempts succeed or fail based on data validity",
+        "6th attempt returns 429 (Too Many Requests)",
+        "Rate limit headers are present"
+      ],
+      "passCriteria": "Rate limiting works on registration endpoint"
+    },
+    {
+      "id": "AUTH-014",
+      "category": "Authentication",
+      "subcategory": "Logout",
+      "name": "Logout successfully",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "User is on any authenticated page",
+        "Click Logout button",
+        "Observe behavior"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Session cookie is cleared",
+        "User is redirected to login page",
+        "User cannot access protected pages without re-login"
+      ],
+      "passCriteria": "Logout clears session and redirects to login"
+    },
+    {
+      "id": "AUTH-015",
+      "category": "Authentication",
+      "subcategory": "Session Management",
+      "name": "Access protected page without login",
+      "priority": "High",
+      "preconditions": [
+        "Application is running",
+        "User is not logged in"
+      ],
+      "testSteps": [
+        "Navigate directly to /index.html",
+        "Observe behavior"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "User is redirected to login page",
+        "Original URL is preserved in ?next= parameter"
+      ],
+      "passCriteria": "Unauthenticated users are redirected to login"
+    },
+    {
+      "id": "AUTH-016",
+      "category": "Authentication",
+      "subcategory": "Session Management",
+      "name": "Access login page while already logged in",
+      "priority": "Medium",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/login.html",
+        "Observe behavior"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "User is automatically redirected to dashboard",
+        "Login form is not displayed"
+      ],
+      "passCriteria": "Logged-in users cannot access login page"
+    },
+    {
+      "id": "TICKET-001",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket as end user",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as end_user",
+        "At least one active admin exists in system"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title: 'Network connectivity issue'",
+        "Enter description: 'Cannot connect to server'",
+        "Select priority: High",
+        "Select category: Network",
+        "Select department: IT",
+        "Click Create button"
+      ],
+      "testData": {
+        "title": "Network connectivity issue",
+        "description": "Cannot connect to server",
+        "priority": "High",
+        "category": "Network",
+        "department": "IT"
+      },
+      "expectedResults": [
+        "Ticket is created successfully",
+        "Ticket is automatically assigned to an admin",
+        "Ticket status is 'New'",
+        "User is redirected to ticket detail page",
+        "Ticket alias is generated (e.g., TKT-2025-00001)"
+      ],
+      "passCriteria": "End user can create ticket and it's auto-assigned to admin"
+    },
+    {
+      "id": "TICKET-002",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket as admin without assignee",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title: 'System update required'",
+        "Enter description: 'Need to update software'",
+        "Select priority: Medium",
+        "Leave assignee empty",
+        "Click Create button"
+      ],
+      "testData": {
+        "title": "System update required",
+        "description": "Need to update software",
+        "priority": "Medium",
+        "assignee": ""
+      },
+      "expectedResults": [
+        "Ticket is created successfully",
+        "Ticket is automatically assigned to the admin who created it",
+        "Ticket appears in ticket list"
+      ],
+      "passCriteria": "Admin-created tickets without assignee are auto-assigned to creator"
+    },
+    {
+      "id": "TICKET-003",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket with title exceeding 200 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title with 201 characters",
+        "Enter description: 'Test'",
+        "Select priority: Low",
+        "Click Create button"
+      ],
+      "testData": {
+        "title": "A".repeat(201),
+        "description": "Test",
+        "priority": "Low"
+      },
+      "expectedResults": [
+        "Error message displayed: 'title too long (max 200 characters)'",
+        "Ticket is not created",
+        "Form remains on create ticket page"
+      ],
+      "passCriteria": "Title length validation prevents overly long titles"
+    },
+    {
+      "id": "TICKET-004",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket with description exceeding 5000 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title: 'Test Ticket'",
+        "Enter description with 5001 characters",
+        "Select priority: Low",
+        "Click Create button"
+      ],
+      "testData": {
+        "title": "Test Ticket",
+        "description": "B".repeat(5001),
+        "priority": "Low"
+      },
+      "expectedResults": [
+        "Error message displayed: 'description too long (max 5000 characters)'",
+        "Ticket is not created"
+      ],
+      "passCriteria": "Description length validation works"
+    },
+    {
+      "id": "TICKET-005",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket with department exceeding 100 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title: 'Test Ticket'",
+        "Enter description: 'Test'",
+        "Enter department with 101 characters",
+        "Select priority: Low",
+        "Click Create button"
+      ],
+      "testData": {
+        "title": "Test Ticket",
+        "description": "Test",
+        "department": "C".repeat(101),
+        "priority": "Low"
+      },
+      "expectedResults": [
+        "Error message displayed: 'department too long (max 100 characters)'",
+        "Ticket is not created"
+      ],
+      "passCriteria": "Department length validation works"
+    },
+    {
+      "id": "TICKET-006",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket without title",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Leave title empty",
+        "Enter description: 'Test description'",
+        "Select priority: Low",
+        "Click Create button"
+      ],
+      "testData": {
+        "title": "",
+        "description": "Test description",
+        "priority": "Low"
+      },
+      "expectedResults": [
+        "Error message displayed: 'title is required'",
+        "Ticket is not created"
+      ],
+      "passCriteria": "Title is required field"
+    },
+    {
+      "id": "TICKET-007",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket with invalid priority",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title: 'Test Ticket'",
+        "Enter description: 'Test'",
+        "Manually set priority to invalid value (via browser dev tools or API)",
+        "Submit form"
+      ],
+      "testData": {
+        "title": "Test Ticket",
+        "description": "Test",
+        "priority": "InvalidPriority"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid priority'",
+        "Ticket is not created"
+      ],
+      "passCriteria": "Invalid priority values are rejected"
+    },
+    {
+      "id": "TICKET-008",
+      "category": "Ticket Management",
+      "subcategory": "Create Ticket",
+      "name": "Create ticket with invalid category",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/create-ticket.html",
+        "Enter title: 'Test Ticket'",
+        "Enter description: 'Test'",
+        "Manually set category to invalid value",
+        "Submit form"
+      ],
+      "testData": {
+        "title": "Test Ticket",
+        "description": "Test",
+        "category": "InvalidCategory"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid category'",
+        "Ticket is not created"
+      ],
+      "passCriteria": "Invalid category values are rejected"
+    },
+    {
+      "id": "TICKET-009",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "View ticket list as authenticated user",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in",
+        "At least one ticket exists in system"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Observe ticket list"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Ticket list is displayed",
+        "Tickets show title, status, priority, assignee, updated date",
+        "Tickets are clickable and link to detail page"
+      ],
+      "passCriteria": "User can view ticket list"
+    },
+    {
+      "id": "TICKET-010",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "View ticket list as end user (filtered)",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as end_user",
+        "Multiple tickets exist (some created by this user, some by others)"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Observe ticket list"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Only tickets created by the end_user are displayed",
+        "Tickets created by other users are not visible"
+      ],
+      "passCriteria": "End users only see their own tickets"
+    },
+    {
+      "id": "TICKET-011",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "Search tickets by title",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Multiple tickets exist with different titles"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Enter search query in search box: 'network'",
+        "Press Enter or click search"
+      ],
+      "testData": {
+        "searchQuery": "network"
+      },
+      "expectedResults": [
+        "Only tickets with 'network' in title or description are displayed",
+        "Search is case-insensitive",
+        "Results update dynamically"
+      ],
+      "passCriteria": "Search functionality filters tickets correctly"
+    },
+    {
+      "id": "TICKET-012",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "Search with query exceeding 100 characters",
+      "priority": "Medium",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Enter search query with 150 characters",
+        "Press Enter or click search"
+      ],
+      "testData": {
+        "searchQuery": "D".repeat(150)
+      },
+      "expectedResults": [
+        "Search query is truncated to 100 characters",
+        "Search executes with truncated query",
+        "No error is displayed"
+      ],
+      "passCriteria": "Long search queries are handled gracefully"
+    },
+    {
+      "id": "TICKET-013",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "Filter tickets by status",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Tickets with different statuses exist"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Select status filter: 'Open'",
+        "Observe results"
+      ],
+      "testData": {
+        "status": "Open"
+      },
+      "expectedResults": [
+        "Only tickets with status 'Open' are displayed",
+        "Filter is applied correctly"
+      ],
+      "passCriteria": "Status filter works correctly"
+    },
+    {
+      "id": "TICKET-014",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "Filter tickets by priority",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Tickets with different priorities exist"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Select priority filter: 'High'",
+        "Observe results"
+      ],
+      "testData": {
+        "priority": "High"
+      },
+      "expectedResults": [
+        "Only tickets with priority 'High' are displayed",
+        "Filter is applied correctly"
+      ],
+      "passCriteria": "Priority filter works correctly"
+    },
+    {
+      "id": "TICKET-015",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "Filter tickets by category",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Tickets with different categories exist"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Select category filter: 'Software'",
+        "Observe results"
+      ],
+      "testData": {
+        "category": "Software"
+      },
+      "expectedResults": [
+        "Only tickets with category 'Software' are displayed",
+        "Filter is applied correctly"
+      ],
+      "passCriteria": "Category filter works correctly"
+    },
+    {
+      "id": "TICKET-016",
+      "category": "Ticket Management",
+      "subcategory": "List Tickets",
+      "name": "Filter tickets by assignee",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin or agent",
+        "Tickets assigned to different users exist"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Select assignee filter: specific user ID",
+        "Observe results"
+      ],
+      "testData": {
+        "assignee": "user-uuid-here"
+      },
+      "expectedResults": [
+        "Only tickets assigned to selected user are displayed",
+        "Filter is applied correctly"
+      ],
+      "passCriteria": "Assignee filter works correctly"
+    },
+    {
+      "id": "TICKET-017",
+      "category": "Ticket Management",
+      "subcategory": "View Ticket",
+      "name": "View ticket details with valid UUID",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in",
+        "Ticket exists with known ID"
+      ],
+      "testSteps": [
+        "Navigate to /pages/ticket-detail.html?id={valid-ticket-id}",
+        "Observe ticket details page"
+      ],
+      "testData": {
+        "ticketId": "valid-uuid-here"
+      },
+      "expectedResults": [
+        "Ticket details are displayed (title, description, status, priority, category, assignee)",
+        "Assignee name and email are shown if assigned",
+        "Comments section is visible",
+        "Update form is visible (if user has permission)"
+      ],
+      "passCriteria": "Ticket details page loads correctly"
+    },
+    {
+      "id": "TICKET-018",
+      "category": "Ticket Management",
+      "subcategory": "View Ticket",
+      "name": "View ticket with invalid UUID format",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/ticket-detail.html?id=invalid-uuid",
+        "Observe behavior"
+      ],
+      "testData": {
+        "ticketId": "invalid-uuid"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid ticket id'",
+        "User is redirected or error page is shown"
+      ],
+      "passCriteria": "Invalid UUID format is rejected"
+    },
+    {
+      "id": "TICKET-019",
+      "category": "Ticket Management",
+      "subcategory": "View Ticket",
+      "name": "View non-existent ticket",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to /pages/ticket-detail.html?id=00000000-0000-0000-0000-000000000000",
+        "Observe behavior"
+      ],
+      "testData": {
+        "ticketId": "00000000-0000-0000-0000-000000000000"
+      },
+      "expectedResults": [
+        "Error message displayed: 'not found' or 'resource not found'",
+        "Appropriate 404 handling"
+      ],
+      "passCriteria": "Non-existent tickets return appropriate error"
+    },
+    {
+      "id": "TICKET-020",
+      "category": "Ticket Management",
+      "subcategory": "Update Ticket",
+      "name": "Update ticket as admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Update title: 'Updated Title'",
+        "Update description: 'Updated description'",
+        "Change status to: 'In Progress'",
+        "Change priority to: 'High'",
+        "Change assignee to another user",
+        "Click Update button"
+      ],
+      "testData": {
+        "title": "Updated Title",
+        "description": "Updated description",
+        "status": "In Progress",
+        "priority": "High",
+        "assignee": "user-uuid-here"
+      },
+      "expectedResults": [
+        "Ticket is updated successfully",
+        "Changes are reflected immediately",
+        "Updated timestamp is changed",
+        "All fields are updated correctly"
+      ],
+      "passCriteria": "Admin can update all ticket fields"
+    },
+    {
+      "id": "TICKET-021",
+      "category": "Ticket Management",
+      "subcategory": "Update Ticket",
+      "name": "Update ticket as agent",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as agent",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Update ticket fields",
+        "Click Update button"
+      ],
+      "testData": {
+        "title": "Updated by Agent",
+        "status": "Open"
+      },
+      "expectedResults": [
+        "Ticket is updated successfully",
+        "Agent has same update permissions as admin"
+      ],
+      "passCriteria": "Agents can update tickets"
+    },
+    {
+      "id": "TICKET-022",
+      "category": "Ticket Management",
+      "subcategory": "Update Ticket",
+      "name": "Update ticket as end user (should fail)",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as end_user",
+        "Ticket exists (created by this user)"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Attempt to update ticket fields",
+        "Click Update button"
+      ],
+      "testData": {
+        "title": "Attempted Update"
+      },
+      "expectedResults": [
+        "Update fails with 403 Forbidden error",
+        "Error message: 'forbidden'",
+        "Ticket is not updated"
+      ],
+      "passCriteria": "End users cannot update tickets"
+    },
+    {
+      "id": "TICKET-023",
+      "category": "Ticket Management",
+      "subcategory": "Update Ticket",
+      "name": "Update ticket title exceeding 200 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Update title with 201 characters",
+        "Click Update button"
+      ],
+      "testData": {
+        "title": "A".repeat(201)
+      },
+      "expectedResults": [
+        "Error message displayed: 'title too long (max 200 characters)'",
+        "Ticket is not updated"
+      ],
+      "passCriteria": "Title length validation works on update"
+    },
+    {
+      "id": "TICKET-024",
+      "category": "Ticket Management",
+      "subcategory": "Update Ticket",
+      "name": "Update ticket description exceeding 5000 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Update description with 5001 characters",
+        "Click Update button"
+      ],
+      "testData": {
+        "description": "B".repeat(5001)
+      },
+      "expectedResults": [
+        "Error message displayed: 'description too long (max 5000 characters)'",
+        "Ticket is not updated"
+      ],
+      "passCriteria": "Description length validation works on update"
+    },
+    {
+      "id": "TICKET-025",
+      "category": "Ticket Management",
+      "subcategory": "Comments",
+      "name": "Add comment to ticket",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Enter comment text: 'This is a test comment'",
+        "Click Add Comment or Submit button"
+      ],
+      "testData": {
+        "comment": "This is a test comment"
+      },
+      "expectedResults": [
+        "Comment is added successfully",
+        "Comment appears in comments section",
+        "Comment shows author and timestamp",
+        "Comments are ordered chronologically"
+      ],
+      "passCriteria": "Users can add comments to tickets"
+    },
+    {
+      "id": "TICKET-026",
+      "category": "Ticket Management",
+      "subcategory": "Comments",
+      "name": "Add comment exceeding 2000 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Enter comment with 2001 characters",
+        "Click Add Comment button"
+      ],
+      "testData": {
+        "comment": "D".repeat(2001)
+      },
+      "expectedResults": [
+        "Error message displayed: 'comment too long (max 2000 characters)'",
+        "Comment is not added"
+      ],
+      "passCriteria": "Comment length validation works"
+    },
+    {
+      "id": "TICKET-027",
+      "category": "Ticket Management",
+      "subcategory": "Comments",
+      "name": "Add empty comment",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Leave comment field empty or enter only whitespace",
+        "Click Add Comment button"
+      ],
+      "testData": {
+        "comment": ""
+      },
+      "expectedResults": [
+        "Error message displayed: 'text is required'",
+        "Comment is not added"
+      ],
+      "passCriteria": "Empty comments are rejected"
+    },
+    {
+      "id": "USER-001",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user as admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin",
+        "User navigates to /pages/admin/users.html"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter email: newuser@example.com",
+        "Enter name: New User",
+        "Enter password: User1234",
+        "Select role: agent",
+        "Click Create User button"
+      ],
+      "testData": {
+        "email": "newuser@example.com",
+        "name": "New User",
+        "password": "User1234",
+        "role": "agent"
+      },
+      "expectedResults": [
+        "User is created successfully",
+        "User appears in user list",
+        "User can login with created credentials",
+        "User has correct role assigned"
+      ],
+      "passCriteria": "Admin can create users with any role"
+    },
+    {
+      "id": "USER-002",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user with admin role",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter email: admin2@example.com",
+        "Enter name: Admin Two",
+        "Enter password: Admin1234",
+        "Select role: admin",
+        "Click Create User button"
+      ],
+      "testData": {
+        "email": "admin2@example.com",
+        "name": "Admin Two",
+        "password": "Admin1234",
+        "role": "admin"
+      },
+      "expectedResults": [
+        "User is created with admin role",
+        "New admin can login and has admin privileges"
+      ],
+      "passCriteria": "Admin can create other admin users"
+    },
+    {
+      "id": "USER-003",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user with invalid email format",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter invalid email: invalid-email",
+        "Enter name: Test User",
+        "Enter password: Test1234",
+        "Select role: end_user",
+        "Click Create User button"
+      ],
+      "testData": {
+        "email": "invalid-email",
+        "name": "Test User",
+        "password": "Test1234",
+        "role": "end_user"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid email format'",
+        "User is not created"
+      ],
+      "passCriteria": "Email validation works in admin user creation"
+    },
+    {
+      "id": "USER-004",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user with name exceeding 100 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter email: test@example.com",
+        "Enter name with 101 characters",
+        "Enter password: Test1234",
+        "Select role: end_user",
+        "Click Create User button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "C".repeat(101),
+        "password": "Test1234",
+        "role": "end_user"
+      },
+      "expectedResults": [
+        "Error message displayed: 'name too long (max 100 characters)'",
+        "User is not created"
+      ],
+      "passCriteria": "Name length validation works"
+    },
+    {
+      "id": "USER-005",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user with weak password",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter email: test@example.com",
+        "Enter name: Test User",
+        "Enter weak password: weak",
+        "Select role: end_user",
+        "Click Create User button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Test User",
+        "password": "weak",
+        "role": "end_user"
+      },
+      "expectedResults": [
+        "Error message displayed with password requirements",
+        "User is not created"
+      ],
+      "passCriteria": "Password strength validation works"
+    },
+    {
+      "id": "USER-006",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user with duplicate email",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin",
+        "User with email test@example.com already exists"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter existing email: test@example.com",
+        "Enter name: Another User",
+        "Enter password: Test1234",
+        "Select role: end_user",
+        "Click Create User button"
+      ],
+      "testData": {
+        "email": "test@example.com",
+        "name": "Another User",
+        "password": "Test1234",
+        "role": "end_user"
+      },
+      "expectedResults": [
+        "Error message displayed: 'email already exists'",
+        "User is not created"
+      ],
+      "passCriteria": "Duplicate email validation works"
+    },
+    {
+      "id": "USER-007",
+      "category": "User Management",
+      "subcategory": "Create User",
+      "name": "Create user as non-admin (should fail)",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as agent or end_user"
+      ],
+      "testSteps": [
+        "Navigate to /pages/admin/users.html",
+        "Attempt to access user creation form"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Access is denied",
+        "User creation form is not accessible",
+        "Error message or redirect occurs"
+      ],
+      "passCriteria": "Only admins can create users"
+    },
+    {
+      "id": "USER-008",
+      "category": "User Management",
+      "subcategory": "List Users",
+      "name": "View user list as admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to /pages/admin/users.html",
+        "Observe user list"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "User list is displayed",
+        "Users show email, name, role, active status",
+        "Users are listed in table format"
+      ],
+      "passCriteria": "Admin can view user list"
+    },
+    {
+      "id": "USER-009",
+      "category": "User Management",
+      "subcategory": "List Users",
+      "name": "Search users by email or name",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin",
+        "Multiple users exist"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Enter search query: 'test'",
+        "Observe results"
+      ],
+      "testData": {
+        "searchQuery": "test"
+      },
+      "expectedResults": [
+        "Users matching 'test' in email or name are displayed",
+        "Search is case-insensitive",
+        "Results update correctly"
+      ],
+      "passCriteria": "User search works correctly"
+    },
+    {
+      "id": "USER-010",
+      "category": "User Management",
+      "subcategory": "List Users",
+      "name": "Filter users by role",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin",
+        "Users with different roles exist"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Select role filter: 'agent'",
+        "Observe results"
+      ],
+      "testData": {
+        "role": "agent"
+      },
+      "expectedResults": [
+        "Only users with 'agent' role are displayed",
+        "Filter is applied correctly"
+      ],
+      "passCriteria": "Role filter works correctly"
+    },
+    {
+      "id": "USER-011",
+      "category": "User Management",
+      "subcategory": "List Users",
+      "name": "Filter users by active status",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin",
+        "Both active and inactive users exist"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Select active filter: 'true'",
+        "Observe results"
+      ],
+      "testData": {
+        "active": true
+      },
+      "expectedResults": [
+        "Only active users are displayed",
+        "Filter is applied correctly"
+      ],
+      "passCriteria": "Active status filter works correctly"
+    },
+    {
+      "id": "USER-012",
+      "category": "User Management",
+      "subcategory": "Update User Role",
+      "name": "Update user role as admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin",
+        "User exists with role 'end_user'"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Find user in list",
+        "Change role from 'end_user' to 'agent'",
+        "Save changes"
+      ],
+      "testData": {
+        "userId": "user-uuid-here",
+        "newRole": "agent"
+      },
+      "expectedResults": [
+        "User role is updated successfully",
+        "User now has 'agent' role",
+        "User can login and has agent privileges"
+      ],
+      "passCriteria": "Admin can update user roles"
+    },
+    {
+      "id": "USER-013",
+      "category": "User Management",
+      "subcategory": "Update User Role",
+      "name": "Update user role with invalid role value",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Attempt to set user role to 'invalid_role'",
+        "Save changes"
+      ],
+      "testData": {
+        "userId": "user-uuid-here",
+        "newRole": "invalid_role"
+      },
+      "expectedResults": [
+        "Error message displayed: 'invalid role. allowed: admin, agent, end_user'",
+        "Role is not updated"
+      ],
+      "passCriteria": "Invalid role values are rejected"
+    },
+    {
+      "id": "USER-014",
+      "category": "User Management",
+      "subcategory": "Activate/Deactivate User",
+      "name": "Deactivate user as admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin",
+        "Active user exists"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Find active user",
+        "Change active status to false",
+        "Save changes"
+      ],
+      "testData": {
+        "userId": "user-uuid-here",
+        "active": false
+      },
+      "expectedResults": [
+        "User is deactivated successfully",
+        "User status shows as inactive",
+        "User cannot login (returns invalid credentials)"
+      ],
+      "passCriteria": "Admin can deactivate users"
+    },
+    {
+      "id": "USER-015",
+      "category": "User Management",
+      "subcategory": "Activate/Deactivate User",
+      "name": "Activate user as admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin",
+        "Inactive user exists"
+      ],
+      "testSteps": [
+        "Navigate to User Management page",
+        "Find inactive user",
+        "Change active status to true",
+        "Save changes"
+      ],
+      "testData": {
+        "userId": "user-uuid-here",
+        "active": true
+      },
+      "expectedResults": [
+        "User is activated successfully",
+        "User status shows as active",
+        "User can login"
+      ],
+      "passCriteria": "Admin can activate users"
+    },
+    {
+      "id": "USER-016",
+      "category": "User Management",
+      "subcategory": "Update User Name",
+      "name": "Update own name as authenticated user",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to user profile or settings",
+        "Update name field: 'Updated Name'",
+        "Save changes"
+      ],
+      "testData": {
+        "userId": "current-user-id",
+        "newName": "Updated Name"
+      },
+      "expectedResults": [
+        "Name is updated successfully",
+        "Updated name is reflected in user profile",
+        "Updated name appears in navigation/user display"
+      ],
+      "passCriteria": "Users can update their own name"
+    },
+    {
+      "id": "USER-017",
+      "category": "User Management",
+      "subcategory": "Update User Name",
+      "name": "Update name exceeding 100 characters",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to user profile",
+        "Enter name with 101 characters",
+        "Save changes"
+      ],
+      "testData": {
+        "newName": "C".repeat(101)
+      },
+      "expectedResults": [
+        "Error message displayed: 'name too long (max 100 characters)'",
+        "Name is not updated"
+      ],
+      "passCriteria": "Name length validation works on update"
+    },
+    {
+      "id": "USER-018",
+      "category": "User Management",
+      "subcategory": "Update Password",
+      "name": "Update own password with current password",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as end_user or agent",
+        "Current password is known"
+      ],
+      "testSteps": [
+        "Navigate to password update page or form",
+        "Enter current password: 'OldPass123'",
+        "Enter new password: 'NewPass123'",
+        "Confirm new password",
+        "Save changes"
+      ],
+      "testData": {
+        "currentPassword": "OldPass123",
+        "newPassword": "NewPass123"
+      },
+      "expectedResults": [
+        "Password is updated successfully",
+        "User can login with new password",
+        "User cannot login with old password"
+      ],
+      "passCriteria": "Users can update their own password"
+    },
+    {
+      "id": "USER-019",
+      "category": "User Management",
+      "subcategory": "Update Password",
+      "name": "Update password without current password (non-admin)",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as end_user or agent"
+      ],
+      "testSteps": [
+        "Navigate to password update form",
+        "Leave current password empty",
+        "Enter new password: 'NewPass123'",
+        "Save changes"
+      ],
+      "testData": {
+        "currentPassword": "",
+        "newPassword": "NewPass123"
+      },
+      "expectedResults": [
+        "Error message displayed: 'current password is required'",
+        "Password is not updated"
+      ],
+      "passCriteria": "Current password is required for non-admins"
+    },
+    {
+      "id": "USER-020",
+      "category": "User Management",
+      "subcategory": "Update Password",
+      "name": "Update password with incorrect current password",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as end_user or agent"
+      ],
+      "testSteps": [
+        "Navigate to password update form",
+        "Enter incorrect current password: 'WrongPass123'",
+        "Enter new password: 'NewPass123'",
+        "Save changes"
+      ],
+      "testData": {
+        "currentPassword": "WrongPass123",
+        "newPassword": "NewPass123"
+      },
+      "expectedResults": [
+        "Error message displayed: 'current password is incorrect'",
+        "Password is not updated"
+      ],
+      "passCriteria": "Incorrect current password is rejected"
+    },
+    {
+      "id": "USER-021",
+      "category": "User Management",
+      "subcategory": "Update Password",
+      "name": "Update user password as admin (without current password)",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as admin",
+        "Another user exists"
+      ],
+      "testSteps": [
+        "Navigate to user management",
+        "Select a user",
+        "Update password to: 'AdminSet123'",
+        "Do not provide current password",
+        "Save changes"
+      ],
+      "testData": {
+        "targetUserId": "user-uuid-here",
+        "newPassword": "AdminSet123"
+      },
+      "expectedResults": [
+        "Password is updated successfully (admin bypasses current password requirement)",
+        "Target user can login with new password"
+      ],
+      "passCriteria": "Admins can update any user's password without current password"
+    },
+    {
+      "id": "USER-022",
+      "category": "User Management",
+      "subcategory": "Update Password",
+      "name": "Update password with weak new password",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Navigate to password update form",
+        "Enter current password",
+        "Enter weak new password: 'weak'",
+        "Save changes"
+      ],
+      "testData": {
+        "currentPassword": "OldPass123",
+        "newPassword": "weak"
+      },
+      "expectedResults": [
+        "Error message displayed with password requirements",
+        "Password is not updated"
+      ],
+      "passCriteria": "Password strength validation works on update"
+    },
+    {
+      "id": "USER-023",
+      "category": "User Management",
+      "subcategory": "Update Password",
+      "name": "Update another user's password as non-admin (should fail)",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as end_user or agent",
+        "Another user exists"
+      ],
+      "testSteps": [
+        "Attempt to update password for different user ID",
+        "Observe behavior"
+      ],
+      "testData": {
+        "targetUserId": "different-user-uuid",
+        "currentPassword": "Test1234",
+        "newPassword": "NewPass123"
+      },
+      "expectedResults": [
+        "Error message displayed: 'can only update your own password'",
+        "Password is not updated",
+        "403 Forbidden error"
+      ],
+      "passCriteria": "Users can only update their own password"
+    },
+    {
+      "id": "REPORT-001",
+      "category": "Reports",
+      "subcategory": "Summary Statistics",
+      "name": "View summary report",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in",
+        "Tickets exist in system"
+      ],
+      "testSteps": [
+        "Navigate to /pages/reports.html",
+        "Observe summary statistics"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Open tickets count is displayed",
+        "Resolved in 7 days count is displayed",
+        "High/Critical open tickets count is displayed",
+        "Statistics are accurate"
+      ],
+      "passCriteria": "Summary report displays correctly"
+    },
+    {
+      "id": "REPORT-002",
+      "category": "Reports",
+      "subcategory": "Summary Statistics",
+      "name": "View reports with no tickets",
+      "priority": "Medium",
+      "preconditions": [
+        "User is logged in",
+        "No tickets exist in system"
+      ],
+      "testSteps": [
+        "Navigate to /pages/reports.html",
+        "Observe summary statistics"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "All counts show 0",
+        "No errors are displayed",
+        "Page loads correctly"
+      ],
+      "passCriteria": "Reports handle empty state correctly"
+    },
+    {
+      "id": "SEC-001",
+      "category": "Security",
+      "subcategory": "Input Validation",
+      "name": "Request body size limit - exceed 1MB",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Create request with body size > 1MB",
+        "Send POST request to any endpoint",
+        "Observe response"
+      ],
+      "testData": {
+        "bodySize": "> 1MB"
+      },
+      "expectedResults": [
+        "Request is rejected with 400 Bad Request",
+        "Error indicates body too large",
+        "Request is not processed"
+      ],
+      "passCriteria": "Body size limit prevents DoS attacks"
+    },
+    {
+      "id": "SEC-002",
+      "category": "Security",
+      "subcategory": "Error Handling",
+      "name": "Error message sanitization in production",
+      "priority": "High",
+      "preconditions": [
+        "Application is running in production mode (APP_ENV=prod)",
+        "Database error occurs"
+      ],
+      "testSteps": [
+        "Trigger a database error (e.g., invalid query)",
+        "Observe error message returned to client"
+      ],
+      "testData": {
+        "environment": "prod"
+      },
+      "expectedResults": [
+        "Generic error message is returned: 'an error occurred'",
+        "No database details, stack traces, or internal information is exposed",
+        "Detailed error is logged server-side only"
+      ],
+      "passCriteria": "Production errors are sanitized"
+    },
+    {
+      "id": "SEC-003",
+      "category": "Security",
+      "subcategory": "Error Handling",
+      "name": "Error message details in development",
+      "priority": "Medium",
+      "preconditions": [
+        "Application is running in development mode (APP_ENV=dev)",
+        "Database error occurs"
+      ],
+      "testSteps": [
+        "Trigger a database error",
+        "Observe error message returned to client"
+      ],
+      "testData": {
+        "environment": "dev"
+      },
+      "expectedResults": [
+        "Detailed error message is returned",
+        "Error includes useful debugging information",
+        "Developer can see actual error details"
+      ],
+      "passCriteria": "Development mode shows detailed errors"
+    },
+    {
+      "id": "SEC-004",
+      "category": "Security",
+      "subcategory": "Cookie Security",
+      "name": "Cookie Secure flag in production",
+      "priority": "Critical",
+      "preconditions": [
+        "Application is running in production mode (APP_ENV=prod)",
+        "User logs in"
+      ],
+      "testSteps": [
+        "Login successfully",
+        "Inspect browser cookies",
+        "Check session cookie attributes"
+      ],
+      "testData": {
+        "environment": "prod"
+      },
+      "expectedResults": [
+        "Session cookie has Secure flag set to true",
+        "Cookie has HttpOnly flag set",
+        "Cookie has SameSite=Lax",
+        "Cookie is only sent over HTTPS"
+      ],
+      "passCriteria": "Cookies are secure in production"
+    },
+    {
+      "id": "SEC-005",
+      "category": "Security",
+      "subcategory": "Cookie Security",
+      "name": "Cookie Secure flag in development",
+      "priority": "Medium",
+      "preconditions": [
+        "Application is running in development mode (APP_ENV=dev)",
+        "User logs in"
+      ],
+      "testSteps": [
+        "Login successfully",
+        "Inspect browser cookies",
+        "Check session cookie attributes"
+      ],
+      "testData": {
+        "environment": "dev"
+      },
+      "expectedResults": [
+        "Session cookie has Secure flag set to false (for localhost)",
+        "Cookie has HttpOnly flag set",
+        "Cookie has SameSite=Lax"
+      ],
+      "passCriteria": "Cookies work in development without HTTPS requirement"
+    },
+    {
+      "id": "SEC-006",
+      "category": "Security",
+      "subcategory": "XSS Protection",
+      "name": "XSS attempt in ticket title",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Create ticket with title containing script: '<script>alert(\"XSS\")</script>'",
+        "View ticket in list and detail page",
+        "Observe behavior"
+      ],
+      "testData": {
+        "title": "<script>alert('XSS')</script>"
+      },
+      "expectedResults": [
+        "Script tags are escaped and displayed as text",
+        "No JavaScript is executed",
+        "Title is safely rendered"
+      ],
+      "passCriteria": "XSS attacks are prevented"
+    },
+    {
+      "id": "SEC-007",
+      "category": "Security",
+      "subcategory": "XSS Protection",
+      "name": "XSS attempt in ticket description",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Create ticket with description containing: '<img src=x onerror=alert(1)>'",
+        "View ticket detail page",
+        "Observe behavior"
+      ],
+      "testData": {
+        "description": "<img src=x onerror=alert(1)>"
+      },
+      "expectedResults": [
+        "HTML is escaped and displayed as text",
+        "No JavaScript is executed",
+        "Description is safely rendered"
+      ],
+      "passCriteria": "XSS in descriptions is prevented"
+    },
+    {
+      "id": "SEC-008",
+      "category": "Security",
+      "subcategory": "XSS Protection",
+      "name": "XSS attempt in comments",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Add comment with: '<script>document.cookie</script>'",
+        "View comment in ticket detail",
+        "Observe behavior"
+      ],
+      "testData": {
+        "comment": "<script>document.cookie</script>"
+      },
+      "expectedResults": [
+        "Script tags are escaped",
+        "Comment is displayed as plain text",
+        "No JavaScript execution occurs"
+      ],
+      "passCriteria": "XSS in comments is prevented"
+    },
+    {
+      "id": "SEC-009",
+      "category": "Security",
+      "subcategory": "SQL Injection",
+      "name": "SQL injection attempt in search query",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Enter search query: \"'; DROP TABLE tickets; --\"",
+        "Submit search",
+        "Observe behavior"
+      ],
+      "testData": {
+        "searchQuery": "'; DROP TABLE tickets; --"
+      },
+      "expectedResults": [
+        "Search executes safely",
+        "No SQL injection occurs",
+        "Query is treated as literal string",
+        "Database remains intact"
+      ],
+      "passCriteria": "SQL injection attacks are prevented"
+    },
+    {
+      "id": "SEC-010",
+      "category": "Security",
+      "subcategory": "Authorization",
+      "name": "Access admin endpoint as non-admin",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as end_user or agent"
+      ],
+      "testSteps": [
+        "Attempt to access /api/users (POST) endpoint",
+        "Observe response"
+      ],
+      "testData": {
+        "endpoint": "/api/users",
+        "method": "POST"
+      },
+      "expectedResults": [
+        "403 Forbidden error",
+        "Error message: 'forbidden'",
+        "User creation fails"
+      ],
+      "passCriteria": "Non-admins cannot access admin endpoints"
+    },
+    {
+      "id": "SEC-011",
+      "category": "Security",
+      "subcategory": "Authorization",
+      "name": "Update ticket as end user",
+      "priority": "Critical",
+      "preconditions": [
+        "User is logged in as end_user",
+        "Ticket exists"
+      ],
+      "testSteps": [
+        "Navigate to ticket detail page",
+        "Attempt to update ticket",
+        "Observe response"
+      ],
+      "testData": {
+        "ticketId": "ticket-uuid-here"
+      },
+      "expectedResults": [
+        "403 Forbidden error",
+        "Update fails",
+        "Ticket is not modified"
+      ],
+      "passCriteria": "End users cannot update tickets"
+    },
+    {
+      "id": "UI-001",
+      "category": "UI/UX",
+      "subcategory": "Navigation",
+      "name": "Navigate between pages",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Click on Dashboard link",
+        "Click on Tickets link",
+        "Click on Create Ticket link",
+        "Click on Reports link",
+        "Observe navigation behavior"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "All navigation links work correctly",
+        "Pages load without errors",
+        "User remains authenticated throughout navigation"
+      ],
+      "passCriteria": "Navigation works smoothly"
+    },
+    {
+      "id": "UI-002",
+      "category": "UI/UX",
+      "subcategory": "Navigation",
+      "name": "Admin link visibility",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as admin"
+      ],
+      "testSteps": [
+        "Navigate to home page",
+        "Observe navigation bar",
+        "Check for 'Users' or 'Admin' link"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Admin link is visible in navigation",
+        "Link points to /pages/admin/users.html",
+        "Admin Quick Access card is visible on home page"
+      ],
+      "passCriteria": "Admin users see admin navigation options"
+    },
+    {
+      "id": "UI-003",
+      "category": "UI/UX",
+      "subcategory": "Navigation",
+      "name": "Admin link hidden for non-admins",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in as end_user or agent"
+      ],
+      "testSteps": [
+        "Navigate to home page",
+        "Observe navigation bar",
+        "Check for admin links"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Admin link is not visible",
+        "Admin Quick Access card is not visible",
+        "No admin functionality is exposed"
+      ],
+      "passCriteria": "Non-admin users do not see admin options"
+    },
+    {
+      "id": "UI-004",
+      "category": "UI/UX",
+      "subcategory": "Error Display",
+      "name": "Display validation errors",
+      "priority": "High",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Attempt to create ticket without title",
+        "Observe error message display"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Error message is displayed clearly",
+        "Error is visible and readable",
+        "Form highlights the issue",
+        "User can correct and resubmit"
+      ],
+      "passCriteria": "Error messages are user-friendly"
+    },
+    {
+      "id": "UI-005",
+      "category": "UI/UX",
+      "subcategory": "Form Validation",
+      "name": "Real-time form validation",
+      "priority": "Medium",
+      "preconditions": [
+        "User is on registration or create ticket page"
+      ],
+      "testSteps": [
+        "Enter invalid data in form fields",
+        "Observe validation feedback",
+        "Correct errors and resubmit"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Validation errors are shown before submission",
+        "Errors clear when data is corrected",
+        "Form prevents submission with invalid data"
+      ],
+      "passCriteria": "Form validation provides good UX"
+    },
+    {
+      "id": "UI-006",
+      "category": "UI/UX",
+      "subcategory": "Loading States",
+      "name": "Loading indicator during API calls",
+      "priority": "Medium",
+      "preconditions": [
+        "User is logged in"
+      ],
+      "testSteps": [
+        "Perform action that triggers API call (create ticket, search, etc.)",
+        "Observe UI during API call"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Loading indicator or disabled state is shown",
+        "User cannot submit multiple times",
+        "UI updates when response is received"
+      ],
+      "passCriteria": "Loading states provide feedback"
+    },
+    {
+      "id": "PERF-001",
+      "category": "Performance",
+      "subcategory": "Response Time",
+      "name": "Ticket list load time",
+      "priority": "Medium",
+      "preconditions": [
+        "User is logged in",
+        "Multiple tickets exist (100+)"
+      ],
+      "testSteps": [
+        "Navigate to /pages/tickets.html",
+        "Measure time until list is displayed",
+        "Observe pagination"
+      ],
+      "testData": {},
+      "expectedResults": [
+        "Page loads within 2 seconds",
+        "Pagination limits results appropriately",
+        "No timeout errors occur"
+      ],
+      "passCriteria": "Ticket list performs well with large datasets"
+    },
+    {
+      "id": "PERF-002",
+      "category": "Performance",
+      "subcategory": "Response Time",
+      "name": "Search performance with large dataset",
+      "priority": "Medium",
+      "preconditions": [
+        "User is logged in",
+        "Large number of tickets exist"
+      ],
+      "testSteps": [
+        "Enter search query",
+        "Measure search response time",
+        "Observe results"
+      ],
+      "testData": {
+        "searchQuery": "test"
+      },
+      "expectedResults": [
+        "Search completes within 1 second",
+        "Results are accurate",
+        "No performance degradation"
+      ],
+      "passCriteria": "Search performs well"
+    }
+  ]
+}
+

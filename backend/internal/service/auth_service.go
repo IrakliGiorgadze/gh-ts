@@ -25,8 +25,19 @@ func NewAuthService(users repository.UserRepository, sessionSecret string) *Auth
 func (a *AuthService) Register(ctx context.Context, email, name, password string) (*models.User, error) {
 	email = strings.TrimSpace(email)
 	name = strings.TrimSpace(name)
-	if email == "" || name == "" || len(password) < 6 {
+	
+	if email == "" || name == "" {
 		return nil, errors.New("invalid input")
+	}
+	
+	// Validate email format
+	if !utils.ValidateEmail(email) {
+		return nil, errors.New("invalid email format")
+	}
+	
+	// Validate password strength
+	if err := utils.ValidatePasswordStrength(password); err != nil {
+		return nil, err
 	}
 
 	// Self-registration is only allowed for end users.

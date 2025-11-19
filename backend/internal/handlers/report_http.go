@@ -26,21 +26,22 @@ func (h *ReportsHTTP) Summary() http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		// Fast path if the concrete repo supports counters
 		if rr, ok := h.repo.(adv); ok {
+			env := utils.GetEnv(r.Context())
 			open, err := rr.CountByStatus(r.Context(), []string{"Resolved", "Closed"}, false)
 			if err != nil {
-				utils.Error(w, http.StatusInternalServerError, err.Error())
+				utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 				return
 			}
 
 			resolved7d, err := rr.CountResolvedSince(r.Context(), time.Now().Add(-7*24*time.Hour))
 			if err != nil {
-				utils.Error(w, http.StatusInternalServerError, err.Error())
+				utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 				return
 			}
 
 			highCritOpen, err := rr.CountOpenByPriorities(r.Context(), []string{"High", "Critical"})
 			if err != nil {
-				utils.Error(w, http.StatusInternalServerError, err.Error())
+				utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 				return
 			}
 
@@ -53,9 +54,10 @@ func (h *ReportsHTTP) Summary() http.HandlerFunc {
 		}
 
 		// Fallback (works with any repo): list & compute
+		env := utils.GetEnv(r.Context())
 		items, err := h.repo.List(r.Context(), "", "", 1000, 0) // cap to 1000 to avoid heavy scans
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 

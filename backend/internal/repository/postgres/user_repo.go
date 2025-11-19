@@ -59,6 +59,22 @@ func (r *UserRepo) GetByID(ctx context.Context, id string) (*models.User, error)
 	return &u, nil
 }
 
+func (r *UserRepo) GetByIDWithHash(ctx context.Context, id string) (*models.User, string, error) {
+	var u models.User
+	var ph string
+	err := r.db.QueryRow(ctx, `
+		SELECT id, email, name, role, active, password_h, created_at, updated_at
+		FROM users WHERE id=$1`, id).
+		Scan(&u.ID, &u.Email, &u.Name, &u.Role, &u.Active, &ph, &u.CreatedAt, &u.UpdatedAt)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			return nil, "", nil
+		}
+		return nil, "", err
+	}
+	return &u, ph, nil
+}
+
 // -----------------------------------------------------------------------------
 // Admin/list/update operations
 // -----------------------------------------------------------------------------
@@ -77,6 +93,10 @@ func (r *UserRepo) List(ctx context.Context, q, role string, active *bool, limit
 	args := []any{}
 
 	if s := strings.TrimSpace(q); s != "" {
+		// Limit search query length to prevent DoS
+		if len(s) > 100 {
+			s = s[:100]
+		}
 		p := "%" + s + "%"
 		args = append(args, p, p)
 		clauses = append(clauses, "(email ILIKE $"+itoa(len(args)-1)+" OR name ILIKE $"+itoa(len(args))+")")

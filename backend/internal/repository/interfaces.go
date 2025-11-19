@@ -26,6 +26,7 @@ type UserRepository interface {
 	Create(ctx context.Context, email, name, role, passwordHash string) (*models.User, error)
 	GetByEmail(ctx context.Context, email string) (*models.User, string, error)
 	GetByID(ctx context.Context, id string) (*models.User, error)
+	GetByIDWithHash(ctx context.Context, id string) (*models.User, string, error)
 
 	List(ctx context.Context, q, role string, active *bool, limit, offset int) ([]models.User, int, error)
 	UpdateBasic(ctx context.Context, id, name string) (*models.User, error)

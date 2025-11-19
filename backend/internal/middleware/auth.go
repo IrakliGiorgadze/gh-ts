@@ -37,11 +37,15 @@ func WithAuth(log zerolog.Logger, cfg config.Config) func(http.Handler) http.Han
 			claims, err := utils.ParseJWT(cfg.SessionSecret, tok)
 			if err != nil {
 				// IMPORTANT: clear broken/expired cookie so it stops being sent
+				// Secure flag must match the login cookie
+				isProd := cfg.Env == "prod"
 				http.SetCookie(w, &http.Cookie{
 					Name:     "session",
 					Value:    "",
 					Path:     "/",
 					HttpOnly: true,
+					Secure:   isProd, // true in production, false in dev
+					SameSite: http.SameSiteLaxMode,
 					MaxAge:   -1,
 				})
 				next.ServeHTTP(w, r)

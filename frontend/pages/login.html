@@ -24,12 +24,7 @@
           onsubmit="return false;"
           style="gap: 12px"
         >
-          <input
-            class="input"
-            id="email"
-            placeholder="Email"
-            value=""
-          />
+          <input class="input" id="email" placeholder="Email" value="" />
           <input
             class="input"
             id="password"
@@ -61,7 +56,6 @@
     <script src="../assets/js/utils.js"></script>
     <script src="../assets/js/i18n.js"></script>
     <script src="../assets/js/api.js"></script>
-    <script src="../assets/js/auth.js"></script>
     <script>
       (function () {
         const form = document.getElementById("login-form");
@@ -87,6 +81,12 @@
           const email = emailEl.value.trim();
           const password = passEl.value;
 
+          if (!email || !password) {
+            showError("Email and password are required");
+            btn.disabled = false;
+            return;
+          }
+
           try {
             const res = await fetch("/api/auth/login", {
               method: "POST",
@@ -101,15 +101,26 @@
             } catch (_) {}
 
             if (res.ok) {
-              window.location.href = "../index.html";
+              console.log("[Login] Login successful, user:", data);
+              // Cookie is set by the server, just redirect
+              // No need to verify - the cookie will be available on the next page
+              const params = new URLSearchParams(window.location.search);
+              const next = params.get("next");
+              const target = next || "/index.html";
+              console.log("[Login] Redirecting to:", target);
+              // Small delay to ensure cookie is set
+              setTimeout(() => {
+                window.location.replace(target);
+              }, 100);
             } else {
+              console.error("[Login] Login failed:", res.status, data);
               showError(
                 (data && (data.error || data.message)) || "Invalid credentials"
               );
+              btn.disabled = false;
             }
           } catch (ex) {
             showError("Network error. Please try again.");
-          } finally {
             btn.disabled = false;
           }
         }

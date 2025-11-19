@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"time"
 
+	"gh-ts/internal/config"
 	"gh-ts/internal/middleware"
 	"gh-ts/internal/repository"
 	"gh-ts/internal/service"
@@ -33,6 +34,7 @@ func (h *AuthHTTP) Register() http.HandlerFunc {
 		}
 		u, err := h.svc.Register(r.Context(), in.Email, in.Name, in.Password)
 		if err != nil {
+			// Registration validation errors are safe to expose (email format, password strength)
 			utils.Error(w, http.StatusBadRequest, err.Error())
 			return
 		}
@@ -40,7 +42,7 @@ func (h *AuthHTTP) Register() http.HandlerFunc {
 	}
 }
 
-func (h *AuthHTTP) Login(secret string) http.HandlerFunc {
+func (h *AuthHTTP) Login(cfg config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
 		var in struct {
 			Email    string `json:"email"`
@@ -58,6 +60,8 @@ func (h *AuthHTTP) Login(secret string) http.HandlerFunc {
 		}
 
 		// Issue httpOnly session cookie
+		// Secure flag is true in production (when behind HTTPS), false in dev
+		isProd := cfg.Env == "prod"
 		http.SetCookie(w, &http.Cookie{
 			Name:     "session",
 			Value:    token,
@@ -65,9 +69,8 @@ func (h *AuthHTTP) Login(secret string) http.HandlerFunc {
 			HttpOnly: true,
 			// Lax works for same-origin (frontend via Nginx proxy)
 			SameSite: http.SameSiteLaxMode,
-			// Set true behind HTTPS in prod
-			Secure:  false,
-			Expires: time.Now().Add(24 * time.Hour),
+			Secure:   isProd, // true in production, false in dev
+			Expires:  time.Now().Add(24 * time.Hour),
 		})
 
 		// Return the public profile as body
@@ -82,15 +85,18 @@ func (h *AuthHTTP) Login(secret string) http.HandlerFunc {
 	}
 }
 
-func (h *AuthHTTP) Logout() http.HandlerFunc {
+func (h *AuthHTTP) Logout(cfg config.Config) http.HandlerFunc {
 	return func(w http.ResponseWriter, r *http.Request) {
+		// Secure flag must match the login cookie
+		isProd := cfg.Env == "prod"
 		http.SetCookie(w, &http.Cookie{
 			Name:     "session",
 			Value:    "",
 			Path:     "/",
 			HttpOnly: true,
 			SameSite: http.SameSiteLaxMode,
-			MaxAge:   -1,              // expire immediately
+			Secure:   isProd, // true in production, false in dev
+			MaxAge:   -1,     // expire immediately
 			Expires:  time.Unix(0, 0), // for older browsers
 		})
 		w.WriteHeader(http.StatusNoContent)

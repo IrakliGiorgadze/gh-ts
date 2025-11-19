@@ -32,6 +32,10 @@ func (r *TicketRepo) List(ctx context.Context, q, status string, limit, offset i
 	conds := []string{"1=1"}
 
 	if q = strings.TrimSpace(q); q != "" {
+		// Limit search query length to prevent DoS
+		if len(q) > 100 {
+			q = q[:100]
+		}
 		p := "%" + q + "%"
 		args = append(args, p, p)
 		// Case-insensitive match on title or description
@@ -287,8 +291,12 @@ func buildTicketWhere(q, status, priority, category, assignee string) (string, [
 	clauses := []string{"1=1"}
 	args := []any{}
 
-	// free-text search (ILIKE)
+	// free-text search (ILIKE) with length limit
 	if s := strings.TrimSpace(q); s != "" {
+		// Limit search query length to prevent DoS
+		if len(s) > 100 {
+			s = s[:100]
+		}
 		p := "%" + s + "%"
 		args = append(args, p, p)
 		clauses = append(clauses, "(t.title ILIKE $"+itoa(len(args)-1)+" OR t.description ILIKE $"+itoa(len(args))+")")

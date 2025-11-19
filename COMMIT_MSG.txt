@@ -1,0 +1,33 @@
+fix: authentication flow and security improvements
+
+- Remove guard.js from all pages to prevent 429 rate limit errors
+- Remove automatic auth redirect from index.html to allow page loads
+- Simplify login flow by removing cookie verification retries
+- Increase auth endpoint rate limit from 5 to 10 requests/minute
+- Update nginx config to properly forward cookies in proxy
+- Fix dashboard.js to not redirect (let index.html handle auth)
+- Add input validation and length limits for all user inputs
+- Implement error sanitization based on environment (prod vs dev)
+- Add password strength validation and secure password update flow
+- Fix cookie Secure flag to be environment-aware (prod=true, dev=false)
+- Add UUID validation in handlers to prevent invalid queries
+- Add request body size limit middleware (1MB) to prevent DoS
+- Improve search query length limits in repositories
+- Add GetByIDWithHash method for secure password verification
+- Update admin user creation with proper validation
+- Fix session cookie handling in auth middleware
+
+Security improvements:
+- Environment-based error messages (no internal details in prod)
+- Input length validation (email, name, title, description, comments)
+- Password strength requirements (8+ chars, upper, lower, number)
+- Request body size limits
+- Search query length limits
+- UUID validation before database queries
+
+Authentication fixes:
+- Removed aggressive auth checks that caused redirect loops
+- Simplified login flow without excessive verification
+- Better cookie persistence handling
+- Fixed rate limiting issues
+

@@ -105,12 +105,14 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 		if ar, ok := h.tickets.(adv); ok {
 			items, err := ar.ListAdv(r.Context(), q, status, priority, category, assignee, sort, order, limit, offset)
 			if err != nil {
-				utils.Error(w, http.StatusInternalServerError, err.Error())
+				env := utils.GetEnv(r.Context())
+				utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 				return
 			}
 			total, err := ar.CountAdv(r.Context(), q, status, priority, category, assignee)
 			if err != nil {
-				utils.Error(w, http.StatusInternalServerError, err.Error())
+				env := utils.GetEnv(r.Context())
+				utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 				return
 			}
 			if role == "end_user" && uid != "" {
@@ -131,7 +133,8 @@ func (h *TicketHTTP) List() http.HandlerFunc {
 		// legacy
 		items, err := h.tickets.List(r.Context(), q, status, limit, offset)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		if role == "end_user" && uid != "" {
@@ -158,9 +161,15 @@ func (h *TicketHTTP) Get() http.HandlerFunc {
 			utils.Error(w, http.StatusBadRequest, "missing id")
 			return
 		}
+		// Validate UUID format
+		if _, err := uuid.Parse(id); err != nil {
+			utils.Error(w, http.StatusBadRequest, "invalid ticket id")
+			return
+		}
 		t, err := h.tickets.Get(r.Context(), id)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		if t == nil {
@@ -200,6 +209,24 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 		in.Title = strings.TrimSpace(in.Title)
 		if in.Title == "" {
 			utils.Error(w, http.StatusBadRequest, "title is required")
+			return
+		}
+		if !utils.ValidateLength(in.Title, utils.MaxTitleLength) {
+			utils.Error(w, http.StatusBadRequest, "title too long (max 200 characters)")
+			return
+		}
+		
+		// Validate description length
+		description := strings.TrimSpace(in.Description)
+		if !utils.ValidateLength(description, utils.MaxDescriptionLength) {
+			utils.Error(w, http.StatusBadRequest, "description too long (max 5000 characters)")
+			return
+		}
+		
+		// Validate department length
+		department := strings.TrimSpace(in.Department)
+		if !utils.ValidateLength(department, utils.MaxDepartmentLength) {
+			utils.Error(w, http.StatusBadRequest, "department too long (max 100 characters)")
 			return
 		}
 
@@ -242,29 +269,32 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 		}
 
 		if err := h.validateAssignee(r.Context(), assignee); err != nil {
-			utils.Error(w, http.StatusBadRequest, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusBadRequest, utils.SafeError(env, err))
 			return
 		}
 
 		t := &models.Ticket{
 			Title:       in.Title,
-			Description: strings.TrimSpace(in.Description),
+			Description: description,
 			Category:    category,
 			Priority:    priority,
 			Status:      "New",
 			Assignee:    assignee,
-			Department:  strings.TrimSpace(in.Department),
+			Department:  department,
 			CreatedBy:   uid,
 		}
 
 		if err := h.tickets.Create(r.Context(), t); err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 
 		created, err := h.tickets.Get(r.Context(), t.ID)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		if created == nil {
@@ -311,7 +341,8 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 
 		t, err := h.tickets.Get(r.Context(), id)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		if t == nil {
@@ -320,10 +351,20 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 		}
 
 		if in.Title != nil {
-			t.Title = strings.TrimSpace(*in.Title)
+			title := strings.TrimSpace(*in.Title)
+			if !utils.ValidateLength(title, utils.MaxTitleLength) {
+				utils.Error(w, http.StatusBadRequest, "title too long (max 200 characters)")
+				return
+			}
+			t.Title = title
 		}
 		if in.Description != nil {
-			t.Description = strings.TrimSpace(*in.Description)
+			description := strings.TrimSpace(*in.Description)
+			if !utils.ValidateLength(description, utils.MaxDescriptionLength) {
+				utils.Error(w, http.StatusBadRequest, "description too long (max 5000 characters)")
+				return
+			}
+			t.Description = description
 		}
 		if in.Category != nil {
 			category := strings.TrimSpace(*in.Category)
@@ -354,24 +395,32 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 		if in.Assignee != nil {
 			assignee := strings.TrimSpace(*in.Assignee)
 			if err := h.validateAssignee(r.Context(), assignee); err != nil {
-				utils.Error(w, http.StatusBadRequest, err.Error())
+				env := utils.GetEnv(r.Context())
+				utils.Error(w, http.StatusBadRequest, utils.SafeError(env, err))
 				return
 			}
 			t.Assignee = assignee
 		}
 		if in.Department != nil {
-			t.Department = strings.TrimSpace(*in.Department)
+			department := strings.TrimSpace(*in.Department)
+			if !utils.ValidateLength(department, utils.MaxDepartmentLength) {
+				utils.Error(w, http.StatusBadRequest, "department too long (max 100 characters)")
+				return
+			}
+			t.Department = department
 		}
 
 		if err := h.tickets.Update(r.Context(), t); err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 
 		// Fetch the updated ticket with assignee name/email populated via JOIN
 		updated, err := h.tickets.Get(r.Context(), t.ID)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		if updated == nil {
@@ -405,14 +454,20 @@ func (h *TicketHTTP) AddComment() http.HandlerFunc {
 			utils.Error(w, http.StatusBadRequest, "text is required")
 			return
 		}
+		if !utils.ValidateLength(in.Text, utils.MaxCommentLength) {
+			utils.Error(w, http.StatusBadRequest, "comment too long (max 2000 characters)")
+			return
+		}
 
 		if _, err := h.tickets.AddComment(r.Context(), id, in.Text); err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		t, err := h.tickets.Get(r.Context(), id)
 		if err != nil {
-			utils.Error(w, http.StatusInternalServerError, err.Error())
+			env := utils.GetEnv(r.Context())
+			utils.Error(w, http.StatusInternalServerError, utils.SafeError(env, err))
 			return
 		}
 		if t == nil {

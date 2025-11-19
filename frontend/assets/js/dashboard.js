@@ -8,30 +8,26 @@
   // Show admin quick access if user is admin
   async function checkAdminAccess() {
     try {
-      // Try to use AuthGuard if available (from guard.js), otherwise use Auth.me()
-      let me = null;
-      if (window.AuthGuard && window.AuthGuard.user) {
-        me = window.AuthGuard.user;
-      } else if (window.AuthGuard && typeof window.AuthGuard.ensureAuth === "function") {
-        me = await window.AuthGuard.ensureAuth();
-      } else {
-        me = await Auth.me();
-      }
+      // Don't redirect here - let index.html handle auth redirects
+      // Just check if user is admin and show/hide admin panel
+      const me = await Auth.me();
       
-      console.log("[Dashboard] Current user:", me);
-      if (me && me.role === "admin") {
-        const adminAccess = document.getElementById("admin-quick-access");
-        if (adminAccess) {
-          adminAccess.style.display = "block";
-          console.log("[Dashboard] Admin access card shown");
-        } else {
-          console.warn("[Dashboard] Admin access element not found");
+      if (me && me.email) {
+        console.log("[Dashboard] Current user:", me.email, "role:", me.role);
+        if (me.role === "admin") {
+          const adminAccess = document.getElementById("admin-quick-access");
+          if (adminAccess) {
+            adminAccess.style.display = "block";
+            console.log("[Dashboard] Admin access card shown");
+          } else {
+            console.warn("[Dashboard] Admin access element not found");
+          }
         }
       } else {
-        console.log("[Dashboard] User is not admin, role:", me?.role);
+        console.log("[Dashboard] Not authenticated (auth check will handle redirect)");
       }
     } catch (e) {
-      // Not authenticated or error - hide admin access
+      // Don't redirect here - let index.html handle it
       console.warn("[Dashboard] Could not check admin status:", e);
     }
   }
@@ -43,16 +39,6 @@
         setTimeout(checkAdminAccess, 200);
       });
     } else {
-      // Also listen for auth event from guard.js
-      document.addEventListener("auth:user", (e) => {
-        const me = e.detail;
-        if (me && me.role === "admin") {
-          const adminAccess = document.getElementById("admin-quick-access");
-          if (adminAccess) {
-            adminAccess.style.display = "block";
-          }
-        }
-      });
       setTimeout(checkAdminAccess, 200);
     }
   }

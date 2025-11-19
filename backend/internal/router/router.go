@@ -1,7 +1,9 @@
 package router
 
 import (
+	"context"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/go-chi/chi/v5"
@@ -20,7 +22,7 @@ import (
 func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 	r := chi.NewRouter()
 
-	// Core middleware (order: recover -> logging -> cors -> rate-limit -> auth)
+	// Core middleware (order: recover -> logging -> cors -> body-limit -> rate-limit -> env -> auth)
 	r.Use(middleware.Recoverer(log))
 	r.Use(middleware.RequestLogger(log))
 	r.Use(cors.Handler(cors.Options{
@@ -29,7 +31,29 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 		AllowedHeaders:   []string{"Accept", "Authorization", "Content-Type"},
 		AllowCredentials: true,
 	}))
-	r.Use(httprate.LimitByIP(200, time.Minute))
+	r.Use(middleware.BodyLimit) // Limit request body size to 1MB
+	// Global rate limit (applies to all routes except /api/auth which has its own)
+	// Create the global rate limiter middleware
+	globalRateLimit := httprate.LimitByIP(200, time.Minute)
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			// Skip global rate limit for auth routes (they have their own stricter limit)
+			if strings.HasPrefix(r.URL.Path, "/api/auth") {
+				next.ServeHTTP(w, r)
+				return
+			}
+			// Apply global rate limit for all other routes
+			globalRateLimit(next).ServeHTTP(w, r)
+		})
+	})
+	// Add environment to context for error sanitization
+	r.Use(func(next http.Handler) http.Handler {
+		return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			ctx := r.Context()
+			ctx = context.WithValue(ctx, "env", cfg.Env)
+			next.ServeHTTP(w, r.WithContext(ctx))
+		})
+	})
 	r.Use(middleware.WithAuth(log, cfg)) // attaches user id/role to context if cookie present
 
 	// Health
@@ -89,11 +113,16 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 		r.With(middleware.RequireAuth).Patch("/{id}/password", userH.UpdatePassword())
 	})
 
-	// Auth
+	// Auth with stricter rate limiting
 	r.Route("/api/auth", func(r chi.Router) {
+		// Stricter rate limit for auth endpoints: 10 requests per minute per IP
+		// This helps prevent brute force attacks on login/register
+		// Increased from 5 to 10 to allow for retries and cookie verification
+		r.Use(httprate.LimitByIP(10, time.Minute))
+		
 		r.Post("/register", authH.Register())
-		r.Post("/login", authH.Login(cfg.SessionSecret))
-		r.Post("/logout", authH.Logout())
+		r.Post("/login", authH.Login(cfg))
+		r.Post("/logout", authH.Logout(cfg))
 		r.Get("/me", authH.Me())
 	})
 
