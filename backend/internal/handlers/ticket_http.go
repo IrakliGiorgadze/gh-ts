@@ -223,12 +223,8 @@ func (h *TicketHTTP) Create() http.HandlerFunc {
 			return
 		}
 		
-		// Validate department length
+		// Department field - no length limit
 		department := strings.TrimSpace(in.Department)
-		if !utils.ValidateLength(department, utils.MaxDepartmentLength) {
-			utils.Error(w, http.StatusBadRequest, "department too long (max 100 characters)")
-			return
-		}
 
 		uid, _ := utils.GetString(r.Context(), middleware.CtxUserID)
 		if uid == "" {
@@ -403,10 +399,6 @@ func (h *TicketHTTP) Update() http.HandlerFunc {
 		}
 		if in.Department != nil {
 			department := strings.TrimSpace(*in.Department)
-			if !utils.ValidateLength(department, utils.MaxDepartmentLength) {
-				utils.Error(w, http.StatusBadRequest, "department too long (max 100 characters)")
-				return
-			}
 			t.Department = department
 		}
 
