@@ -25,9 +25,17 @@ func NewAuthService(users repository.UserRepository, sessionSecret string) *Auth
 func (a *AuthService) Register(ctx context.Context, email, name, password string) (*models.User, error) {
 	email = strings.TrimSpace(email)
 	name = strings.TrimSpace(name)
+	password = strings.TrimSpace(password)
 	
-	if email == "" || name == "" {
-		return nil, errors.New("invalid input")
+	// Validate required fields with specific error messages
+	if email == "" {
+		return nil, errors.New("email is required")
+	}
+	if name == "" {
+		return nil, errors.New("name is required")
+	}
+	if password == "" {
+		return nil, errors.New("password is required")
 	}
 	
 	// Validate email format

@@ -127,34 +127,89 @@
         const justLoggedIn = sessionStorage.getItem('just_logged_in') === 'true';
         
         if (justLoggedIn) {
-          // Just logged in, wait a bit for cookie to be available, then clear flag
-          await new Promise(resolve => setTimeout(resolve, 200));
+          // Just logged in, wait longer for cookie to be available
+          // Cookie needs time to be set by browser after redirect
+          console.log("[Index] Just logged in, waiting for cookie...");
+          await new Promise(resolve => setTimeout(resolve, 500));
           sessionStorage.removeItem('just_logged_in');
         }
         
-        try {
-          const me = await Auth.me();
-          if (!me || !me.email) {
-            // Not authenticated, redirect to login with next parameter immediately
-            // Don't show any content
-            console.log("[Index] Not authenticated, redirecting to login");
+        // Check authentication
+        // On refresh, cookie should be available immediately
+        // Only retry if we just logged in (cookie might not be set yet)
+        let me = null;
+        if (justLoggedIn) {
+          // Just logged in - use retry logic
+          // Wait for Auth to be available first
+          let attempts = 0;
+          while (typeof window.Auth === 'undefined' && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+          }
+          
+          if (typeof window.Auth === 'undefined') {
+            console.error("[Index] Auth API not available after waiting");
             const next = encodeURIComponent(location.pathname + location.search);
             location.replace('./pages/login.html?next=' + next);
-            return; // Stop execution - page will redirect
+            return;
           }
-          console.log("[Index] Authenticated as:", me.email);
           
-          // User is authenticated - show the content
-          if (mainContent) {
-            mainContent.style.display = 'block';
+          let retries = 3;
+          while (retries > 0) {
+            try {
+              me = await window.Auth.me();
+              if (me && me.email) {
+                break; // Success, exit retry loop
+              }
+            } catch (e) {
+              console.log("[Index] Auth check attempt failed, retries left:", retries - 1, e);
+            }
+            
+            retries--;
+            if (retries > 0) {
+              // Wait a bit before retrying
+              await new Promise(resolve => setTimeout(resolve, 300));
+            }
           }
-        } catch (e) {
-          // Auth check failed, redirect to login immediately
-          // Don't show any content
-          console.error("[Index] Auth check error:", e);
+        } else {
+          // Normal page load/refresh - cookie should be available immediately
+          // Wait for Auth to be available (api.js loads asynchronously)
+          let attempts = 0;
+          while (typeof window.Auth === 'undefined' && attempts < 50) {
+            await new Promise(resolve => setTimeout(resolve, 50));
+            attempts++;
+          }
+          
+          if (typeof window.Auth === 'undefined') {
+            console.error("[Index] Auth API not available after waiting");
+            // Redirect to login if Auth is not available
+            const next = encodeURIComponent(location.pathname + location.search);
+            location.replace('./pages/login.html?next=' + next);
+            return;
+          }
+          
+          try {
+            me = await window.Auth.me();
+          } catch (e) {
+            console.error("[Index] Auth check failed on refresh:", e);
+            // On refresh, if auth fails, it means cookie is invalid or expired
+            // Don't retry - just redirect to login
+          }
+        }
+        
+        if (!me || !me.email) {
+          // Not authenticated, redirect to login
+          console.log("[Index] Not authenticated, redirecting to login");
           const next = encodeURIComponent(location.pathname + location.search);
           location.replace('./pages/login.html?next=' + next);
           return; // Stop execution - page will redirect
+        }
+        
+        console.log("[Index] Authenticated as:", me.email);
+        
+        // User is authenticated - show the content
+        if (mainContent) {
+          mainContent.style.display = 'block';
         }
         
         // Only load dashboard components if authenticated

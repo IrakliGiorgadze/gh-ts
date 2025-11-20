@@ -45,6 +45,20 @@
   
   initAdminAccess();
 
+  // Helper to escape HTML (if not available globally)
+  function escapeHtml(str) {
+    if (typeof window.escapeHtml === 'function') {
+      return window.escapeHtml(str);
+    }
+    return String(str).replace(/[&<>"']/g, (m) => ({
+      '&': '&amp;',
+      '<': '&lt;',
+      '>': '&gt;',
+      '"': '&quot;',
+      "'": '&#39;'
+    }[m]));
+  }
+
   // Helper to show error message
   function showError(message) {
     const tbody = document.getElementById("tickets-body");
@@ -76,16 +90,23 @@
 
   async function render() {
     try {
+      // Get search query and trim whitespace
+      const searchQuery = q ? q.value.trim() : "";
+      const statusFilter = fs ? fs.value.trim() : "";
+      
       // Use searchTickets which properly calls the backend API
       const { items: list } = await API.searchTickets({
-        q: q ? q.value : "",
-        status: fs ? fs.value : "",
+        q: searchQuery,
+        status: statusFilter,
         limit: 50,
         offset: 0,
         sort: "updated_at",
         order: "desc",
       });
       if (!tbody) return;
+      
+      // Debug logging (remove in production if needed)
+      console.log("[Dashboard] Search query:", searchQuery, "Results:", list.length);
 
       if (!list || list.length === 0) {
         tbody.innerHTML =
@@ -126,7 +147,29 @@
     }
   }
 
-  q && q.addEventListener("input", render);
+  // Debounce search input to avoid too many API calls
+  let searchTimeout = null;
+  if (q) {
+    q.addEventListener("input", () => {
+      // Clear previous timeout
+      if (searchTimeout) {
+        clearTimeout(searchTimeout);
+      }
+      // Set new timeout - search after 300ms of no typing
+      searchTimeout = setTimeout(() => {
+        render();
+      }, 300);
+    });
+    // Also trigger on Enter key for immediate search
+    q.addEventListener("keydown", (e) => {
+      if (e.key === "Enter") {
+        if (searchTimeout) {
+          clearTimeout(searchTimeout);
+        }
+        render();
+      }
+    });
+  }
   fs && fs.addEventListener("change", render);
   render();
 })();

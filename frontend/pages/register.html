@@ -9,20 +9,22 @@
   <body>
     <div id="navbar"></div>
     <div class="container">
-      <div class="card" style="max-width: 480px; margin: 60px auto">
+      <div id="register-card" class="card" style="max-width: 480px; margin: 60px auto; display: none;">
         <h2>Create Account</h2>
-        <div class="grid" style="gap: 12px">
-          <input id="email" class="input" placeholder="Email" />
-          <input id="name" class="input" placeholder="Full name" />
-          <input
-            id="password"
-            type="password"
-            class="input"
-            placeholder="Password (min 6 chars)"
-          />
-          <button id="btn" class="btn">Register</button>
-          <div id="msg" class="badge" style="display: none"></div>
-        </div>
+        <form id="register-form" onsubmit="return false;" style="margin: 0;">
+          <div class="grid" style="gap: 12px">
+            <input id="email" class="input" placeholder="Email" />
+            <input id="name" class="input" placeholder="Full name" />
+            <input
+              id="password"
+              type="password"
+              class="input"
+              placeholder="Password (8+ chars, upper, lower, number)"
+            />
+            <button id="btn" type="button" class="btn">Register</button>
+            <div id="msg" class="badge" style="display: none"></div>
+          </div>
+        </form>
         <p class="muted" style="margin-top: 10px">
           Already have an account? <a href="./login.html">Sign in</a>
         </p>
@@ -31,6 +33,29 @@
     <script src="../assets/js/api.js"></script>
     <script src="../assets/js/i18n.js"></script>
     <script>
+      // Check authentication immediately - redirect if already logged in
+      (async function checkAuthAndShowForm() {
+        const registerCard = document.getElementById("register-card");
+        
+        try {
+          const me = await Auth.me();
+          if (me && me.email) {
+            // User is already authenticated, redirect to home
+            console.log("[Register] User already authenticated, redirecting");
+            window.location.replace("/index.html");
+            return; // Stop execution - page will redirect
+          }
+        } catch (e) {
+          // Not authenticated or error - continue to show registration form
+          console.log("[Register] User not authenticated, showing registration form");
+        }
+        
+        // User is not authenticated - show the registration form
+        if (registerCard) {
+          registerCard.style.display = "block";
+        }
+      })();
+
       async function register(email, name, password) {
         const res = await fetch("/api/auth/register", {
           method: "POST",
@@ -42,19 +67,66 @@
         }
         return res.json();
       }
-      document.getElementById("btn").onclick = async () => {
+      // Handle form submission (Enter key) and button click
+      const registerForm = document.getElementById("register-form");
+      const registerBtn = document.getElementById("btn");
+      
+      // Prevent form submission on Enter key
+      if (registerForm) {
+        registerForm.addEventListener("submit", (e) => {
+          e.preventDefault();
+          e.stopPropagation();
+          registerBtn.click(); // Trigger button click handler
+          return false;
+        });
+      }
+      
+      registerBtn.onclick = async () => {
         const email = document.getElementById("email").value.trim();
         const name = document.getElementById("name").value.trim();
         const pw = document.getElementById("password").value;
         const msg = document.getElementById("msg");
+        
+        // Clear previous messages
+        msg.style.display = "none";
+        msg.textContent = "";
+        
+        // Frontend validation - check for empty fields
+        if (!email) {
+          msg.textContent = "Email is required";
+          msg.style.display = "inline-block";
+          msg.style.color = "var(--error, #ff6b6b)";
+          return;
+        }
+        if (!name) {
+          msg.textContent = "Name is required";
+          msg.style.display = "inline-block";
+          msg.style.color = "var(--error, #ff6b6b)";
+          return;
+        }
+        if (!pw) {
+          msg.textContent = "Password is required";
+          msg.style.display = "inline-block";
+          msg.style.color = "var(--error, #ff6b6b)";
+          return;
+        }
+        
+        // Disable button during submission
+        const btn = document.getElementById("btn");
+        btn.disabled = true;
+        
         try {
           await register(email, name, pw);
           msg.textContent = "Account created successfully. You can login now.";
           msg.style.display = "inline-block";
+          msg.style.color = "var(--success, #51cf66)";
           setTimeout(() => (location.href = "./login.html"), 800);
         } catch (e) {
-          msg.textContent = e.message;
+          msg.textContent = e.message || "Registration failed";
           msg.style.display = "inline-block";
+          msg.style.color = "var(--error, #ff6b6b)";
+        } finally {
+          btn.disabled = false;
         }
       };
     </script>

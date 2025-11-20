@@ -231,9 +231,9 @@ func (h *UserHTTP) UpdatePassword() http.HandlerFunc {
 			return
 		}
 		
-		// Validate new password
-		if len(req.Password) < 8 {
-			utils.Error(w, http.StatusBadRequest, "password must be at least 8 characters")
+		// Validate new password strength (use same validation as registration)
+		if err := utils.ValidatePasswordStrength(req.Password); err != nil {
+			utils.Error(w, http.StatusBadRequest, err.Error())
 			return
 		}
 		

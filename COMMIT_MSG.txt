@@ -1,0 +1,26 @@
+Fix authentication, validation, and rate limiting issues
+
+- Fix invalid email format handling in admin user creation (Test Case 4.2.2)
+  * Add frontend email validation with regex pattern
+  * Improve error message extraction and display
+  * Add message clearing to prevent stale errors
+
+- Fix login redirect and session persistence issues
+  * Increase wait time after login from 200ms to 500ms for cookie availability
+  * Add retry logic (3 attempts) for auth check after login
+  * Fix refresh logout issue by separating retry logic for login vs refresh
+  * Add Auth availability check with wait loop to prevent race conditions
+
+- Fix rate limiting for /api/auth/me endpoint
+  * Increase rate limit from 10 to 60 requests/minute for frequent auth checks
+  * Keep strict limits (10/min) for login/register endpoints for security
+  * Prevent 429 errors during normal page loads
+
+- Fix JavaScript syntax error in index.html
+  * Remove unnecessary try block missing catch/finally clause
+
+- Improve error handling and user experience
+  * Better error logging for debugging
+  * Clear distinction between login and refresh scenarios
+  * Proper handling of Auth API availability
+

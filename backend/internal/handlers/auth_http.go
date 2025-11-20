@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"net/http"
+	"strings"
 	"time"
 
 	"gh-ts/internal/config"
@@ -34,8 +35,16 @@ func (h *AuthHTTP) Register() http.HandlerFunc {
 		}
 		u, err := h.svc.Register(r.Context(), in.Email, in.Name, in.Password)
 		if err != nil {
+			env := utils.GetEnv(r.Context())
+			// Check for duplicate email error
+			errStr := strings.ToLower(err.Error())
+			if strings.Contains(errStr, "duplicate") || strings.Contains(errStr, "unique") {
+				utils.Error(w, http.StatusBadRequest, "email already exists")
+				return
+			}
 			// Registration validation errors are safe to expose (email format, password strength)
-			utils.Error(w, http.StatusBadRequest, err.Error())
+			// Other errors should be sanitized based on environment
+			utils.Error(w, http.StatusBadRequest, utils.SafeError(env, err))
 			return
 		}
 		utils.JSON(w, http.StatusCreated, u)

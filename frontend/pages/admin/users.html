@@ -47,7 +47,7 @@
             id="create-password"
             class="input"
             type="password"
-            placeholder="Password (min 6 chars)"
+            placeholder="Password (8+ chars, upper, lower, number)"
             required
           />
           <select id="create-role" class="input" required>
@@ -142,6 +142,10 @@
           const password = createPassword.value;
           const role = createRole.value;
 
+          // Clear previous messages
+          createMsg.style.display = "none";
+          createMsg.textContent = "";
+
           if (!email || !name || !password || !role) {
             createMsg.textContent = "Please fill all fields";
             createMsg.style.display = "inline-block";
@@ -149,8 +153,45 @@
             return;
           }
 
-          if (password.length < 6) {
-            createMsg.textContent = "Password must be at least 6 characters";
+          // Frontend email validation
+          const emailRegex = /^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$/;
+          if (!emailRegex.test(email)) {
+            createMsg.textContent = "Invalid email format";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+            return;
+          }
+
+          // Frontend validation matches backend requirements
+          // Backend requires: 8+ chars, uppercase, lowercase, number
+          if (password.length < 8) {
+            createMsg.textContent = "Password must be at least 8 characters";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+            return;
+          }
+          
+          // Check for uppercase, lowercase, and number
+          const hasUpper = /[A-Z]/.test(password);
+          const hasLower = /[a-z]/.test(password);
+          const hasNumber = /[0-9]/.test(password);
+          
+          if (!hasUpper) {
+            createMsg.textContent = "Password must contain at least one uppercase letter";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+            return;
+          }
+          
+          if (!hasLower) {
+            createMsg.textContent = "Password must contain at least one lowercase letter";
+            createMsg.style.display = "inline-block";
+            createMsg.style.color = "var(--error, #ff6b6b)";
+            return;
+          }
+          
+          if (!hasNumber) {
+            createMsg.textContent = "Password must contain at least one number";
             createMsg.style.display = "inline-block";
             createMsg.style.color = "var(--error, #ff6b6b)";
             return;
@@ -176,9 +217,20 @@
               loadUsers();
             }, 500);
           } catch (e) {
-            createMsg.textContent = e.message || "Failed to create user";
+            // Extract error message from API error
+            let errorMsg = "Failed to create user";
+            if (e.message) {
+              errorMsg = e.message;
+            } else if (e.details && e.details.error) {
+              errorMsg = e.details.error;
+            } else if (typeof e === 'string') {
+              errorMsg = e;
+            }
+            
+            createMsg.textContent = errorMsg;
             createMsg.style.display = "inline-block";
             createMsg.style.color = "var(--error, #ff6b6b)";
+            console.error("[Admin] User creation error:", e);
           } finally {
             btnCreate.disabled = false;
           }

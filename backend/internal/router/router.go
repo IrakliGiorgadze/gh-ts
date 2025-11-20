@@ -115,15 +115,15 @@ func New(log zerolog.Logger, db *pgxpool.Pool, cfg config.Config) http.Handler {
 
 	// Auth with stricter rate limiting
 	r.Route("/api/auth", func(r chi.Router) {
-		// Stricter rate limit for auth endpoints: 10 requests per minute per IP
-		// This helps prevent brute force attacks on login/register
-		// Increased from 5 to 10 to allow for retries and cookie verification
-		r.Use(httprate.LimitByIP(10, time.Minute))
-		
-		r.Post("/register", authH.Register())
-		r.Post("/login", authH.Login(cfg))
-		r.Post("/logout", authH.Logout(cfg))
-		r.Get("/me", authH.Me())
+		// Rate limit for login/register/logout: 10 requests per minute (stricter for security)
+		r.Route("/", func(r chi.Router) {
+			r.Use(httprate.LimitByIP(10, time.Minute))
+			r.Post("/register", authH.Register())
+			r.Post("/login", authH.Login(cfg))
+			r.Post("/logout", authH.Logout(cfg))
+		})
+		// Me endpoint: 60 requests per minute (more lenient for frequent auth checks)
+		r.With(httprate.LimitByIP(60, time.Minute)).Get("/me", authH.Me())
 	})
 
 	return r

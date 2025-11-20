@@ -10,8 +10,9 @@
     <div id="navbar"></div>
     <div class="container">
       <div
+        id="login-card"
         class="card"
-        style="max-width: 420px; margin: 60px auto; padding: 24px"
+        style="max-width: 420px; margin: 60px auto; padding: 24px; display: none;"
       >
         <h2 style="margin-bottom: 4px">Sign in</h2>
         <p class="muted" style="margin-bottom: 16px">
@@ -57,6 +58,52 @@
     <script src="../assets/js/i18n.js"></script>
     <script src="../assets/js/api.js"></script>
     <script>
+      // Check authentication immediately - redirect if already logged in
+      // Wait for Auth to be available (api.js loads asynchronously)
+      (async function checkAuthAndShowForm() {
+        const loginCard = document.getElementById("login-card");
+        
+        // Wait for Auth to be available (with timeout - max 2.5 seconds)
+        let attempts = 0;
+        while (typeof window.Auth === 'undefined' && attempts < 50) {
+          await new Promise(resolve => setTimeout(resolve, 50));
+          attempts++;
+        }
+        
+        // If Auth is still not available, show form (might be network issue)
+        if (typeof window.Auth === 'undefined') {
+          console.warn("[Login] Auth API not available after waiting, showing login form");
+          if (loginCard) {
+            loginCard.style.display = "block";
+          }
+          return;
+        }
+        
+        try {
+          const me = await window.Auth.me();
+          if (me && me.email) {
+            // User is already authenticated, redirect to home or next parameter
+            console.log("[Login] User already authenticated, redirecting to:", me.email);
+            const params = new URLSearchParams(window.location.search);
+            const next = params.get("next");
+            const target = next || "/index.html";
+            console.log("[Login] Redirecting to:", target);
+            window.location.replace(target);
+            return; // Stop execution - page will redirect
+          } else {
+            console.log("[Login] User not authenticated (me:", me, ")");
+          }
+        } catch (e) {
+          // Not authenticated or error - continue to show login form
+          console.log("[Login] Auth check error, showing login form:", e);
+        }
+        
+        // User is not authenticated - show the login form
+        if (loginCard) {
+          loginCard.style.display = "block";
+        }
+      })();
+
       (function () {
         const form = document.getElementById("login-form");
         const btn = document.getElementById("btn-login");
